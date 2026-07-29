@@ -61,10 +61,12 @@ Cadastro dos itens que a área de Marketing controla fisicamente.
   snapshot de custo nas retiradas de Consumo por área).
 - **Categorias**: botão "Gerenciar categorias" abre um cadastro próprio (criar/renomear/excluir),
   em vez da lista fixa de 5 valores que existia antes. O campo de categoria no formulário de item
-  continua sendo texto livre com sugestões (`<datalist>`) — agora alimentadas por essa lista
-  gerenciada em vez de hardcoded. Renomear uma categoria atualiza automaticamente todos os itens
-  que já usavam o nome antigo; excluir é bloqueado (409) se algum item ainda estiver com essa
-  categoria.
+  é um `<Select>` alimentado por essa lista gerenciada (era um `<input>` com `<datalist>` de
+  sugestão — trocado porque a sugestão do navegador é pouco visível/confiável; um item antigo
+  cuja categoria foi renomeada/excluída do cadastro continua mostrando o valor atual como opção
+  selecionável, em vez de trocá-lo silenciosamente). Renomear uma categoria atualiza
+  automaticamente todos os itens que já usavam o nome antigo; excluir é bloqueado (409) se algum
+  item ainda estiver com essa categoria.
 - Duas visualizações (grade de cartões / lista), alternáveis pelo `ViewToggle`.
 - Exclusão é bloqueada se o item tiver pedidos, movimentações ou kits vinculados — a mensagem de
   erro detalha exatamente quantos de cada tipo e onde resolver: movimentação manual → excluir em

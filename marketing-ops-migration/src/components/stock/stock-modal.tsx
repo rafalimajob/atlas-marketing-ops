@@ -3,6 +3,7 @@
 import { useState, FormEvent } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { SaveButton, type SaveStatus } from "@/components/ui/save-button";
 import { ErrorBanner } from "@/components/ui/error-banner";
@@ -37,6 +38,11 @@ export function StockModal({
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [error, setError] = useState<string | null>(null);
 
+  // Item antigo pode ter uma categoria que foi renomeada/excluída do cadastro
+  // gerenciado depois — mantém o valor atual selecionável em vez de trocá-lo
+  // silenciosamente pela primeira opção da lista.
+  const categoryMissing = form.category !== "" && !categories.some((c) => c.name === form.category);
+
   function set<K extends keyof StockItemFormValues>(key: K, value: StockItemFormValues[K]) {
     setForm((f) => ({ ...f, [key]: value }));
   }
@@ -69,21 +75,24 @@ export function StockModal({
         <div className="grid gap-3 sm:grid-cols-2">
           <Input label="Nome" value={form.name} onChange={(e) => set("name", e.target.value)} required autoFocus />
 
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-zinc-600 dark:text-zinc-400">Categoria</span>
-            <input
-              list="categorias-estoque"
-              value={form.category}
-              onChange={(e) => set("category", e.target.value)}
-              required
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition-colors focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-            />
-            <datalist id="categorias-estoque">
-              {categories.map((c) => (
-                <option key={c.id} value={c.name} />
-              ))}
-            </datalist>
-          </label>
+          <Select
+            label="Categoria"
+            value={form.category}
+            onChange={(e) => set("category", e.target.value)}
+            required
+          >
+            {categories.length === 0 && !categoryMissing && (
+              <option value="" disabled>
+                Nenhuma categoria cadastrada
+              </option>
+            )}
+            {categoryMissing && <option value={form.category}>{form.category} (não cadastrada)</option>}
+            {categories.map((c) => (
+              <option key={c.id} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+          </Select>
 
           <Input
             label="Quantidade disponível"
