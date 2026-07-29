@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logHistory, diffFields } from "@/lib/history";
 import { toErrorResponse } from "@/lib/api-errors";
+import { isMovementLocked } from "@/lib/movements";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -75,6 +76,35 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
   const { id } = await params;
   const existing = await prisma.stockItem.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ error: "Item não encontrado." }, { status: 404 });
+
+  const [orderCount, movements, kitItemCount] = await Promise.all([
+    prisma.order.count({ where: { stockItemId: id } }),
+    prisma.movement.findMany({
+      where: { stockItemId: id },
+      select: { orderId: true, kitOutputId: true, areaId: true },
+    }),
+    prisma.kitItem.count({ where: { stockItemId: id } }),
+  ]);
+
+  if (orderCount > 0 || movements.length > 0 || kitItemCount > 0) {
+    const lockedMovements = movements.filter(isMovementLocked).length;
+    const freeMovements = movements.length - lockedMovements;
+
+    const parts: string[] = [];
+    if (orderCount > 0) parts.push(`${orderCount} pedido(s) de compra`);
+    if (freeMovements > 0) {
+      parts.push(`${freeMovements} movimentação(ões) manual(is) — exclua-as em Movimentações antes de excluir o item`);
+    }
+    if (lockedMovements > 0) {
+      parts.push(`${lockedMovements} movimentação(ões) gerada(s) automaticamente por pedido, kit ou consumo por área`);
+    }
+    if (kitItemCount > 0) parts.push(`${kitItemCount} kit(s) que usam este item na receita`);
+
+    return NextResponse.json(
+      { error: `Este item não pode ser excluído: ${parts.join("; ")}.` },
+      { status: 409 }
+    );
+  }
 
   try {
     await prisma.stockItem.delete({ where: { id } });

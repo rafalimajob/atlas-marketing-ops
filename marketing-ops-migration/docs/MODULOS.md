@@ -66,7 +66,10 @@ Cadastro dos itens que a área de Marketing controla fisicamente.
   que já usavam o nome antigo; excluir é bloqueado (409) se algum item ainda estiver com essa
   categoria.
 - Duas visualizações (grade de cartões / lista), alternáveis pelo `ViewToggle`.
-- Exclusão é bloqueada se o item tiver pedidos, movimentações ou kits vinculados.
+- Exclusão é bloqueada se o item tiver pedidos, movimentações ou kits vinculados — a mensagem de
+  erro detalha exatamente quantos de cada, e se as movimentações são manuais (excluíveis na tela
+  de Movimentações, por um administrador) ou geradas automaticamente por pedido/kit/consumo por
+  área (não removíveis diretamente).
 
 ## Movimentações (`/movimentacoes`)
 

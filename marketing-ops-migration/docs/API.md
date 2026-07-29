@@ -41,7 +41,7 @@ Detalhe completo do fluxo: `docs/AUTENTICACAO_E_SEGURANCA.md`.
 | `/api/stock` | POST | Cria item; gera `code` automático; grava `createdById`/`updatedById` |
 | `/api/stock/[id]` | GET | Busca um item |
 | `/api/stock/[id]` | PATCH | Atualiza campos editáveis; sempre atualiza `updatedById` |
-| `/api/stock/[id]` | DELETE | Bloqueado (409) se houver pedido/movimentação/kit vinculado |
+| `/api/stock/[id]` | DELETE | Bloqueado (409) se houver pedido/movimentação/kit vinculado — a mensagem detalha quantos de cada, e se as movimentações são manuais (excluíveis em Movimentações) ou geradas automaticamente |
 
 ## Categorias de estoque
 
