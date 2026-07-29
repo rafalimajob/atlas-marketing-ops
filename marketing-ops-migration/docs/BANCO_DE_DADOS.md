@@ -105,6 +105,16 @@ Toda escrita em `Movement` passa por `applyMovement()` (`src/lib/movements.ts`),
 3. Rejeita a operação se o saldo resultante for negativo.
 4. Atualiza `StockItem.quantity` e cria a `Movement` **na mesma transação**.
 
+**Editar e excluir (somente ADMIN)**: `updateMovement()` e `deleteMovement()`
+(`src/lib/movements.ts`) permitem que um administrador corrija ou apague uma movimentação
+manual pela tela de Movimentações. Ambas revertem o efeito antigo no saldo do item (e, no caso
+de edição, aplicam o novo efeito — possivelmente em outro item) dentro de uma única transação,
+rejeitando a operação se algum passo deixaria um item com saldo negativo. `isMovementLocked()`
+bloqueia as duas operações (409) para qualquer `Movement` com `orderId`, `kitOutputId` ou
+`areaId` preenchido — essas foram geradas por outro fluxo (entrega de pedido, saída de kit,
+retirada de Consumo por área) e editá-las aqui desincronizaria o estado de origem; só
+movimentações manuais (todos os três campos nulos) podem ser editadas/excluídas nesta tela.
+
 ### Kits (`Kit`, `KitItem`, `KitOutput`)
 
 - `KitItem` é a "receita" do kit (quais itens e quantas unidades de cada compõem 1 kit).

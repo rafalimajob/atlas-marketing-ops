@@ -58,6 +58,8 @@ Detalhe completo do fluxo: `docs/AUTENTICACAO_E_SEGURANCA.md`.
 |---|---|---|
 | `/api/movements` | GET | Lista; `?project=` filtra por projeto (contém, case-insensitive) |
 | `/api/movements` | POST | Valida `direction`/`type`/`quantity`; chama `applyMovement()` |
+| `/api/movements/[id]` | PATCH | **Somente ADMIN** (`requireAdmin()`). Reverte o efeito antigo no saldo e aplica o novo numa transação; 409 se estiver vinculada a pedido/kit/área ou se o resultado deixar algum item negativo |
+| `/api/movements/[id]` | DELETE | **Somente ADMIN**. Reverte o efeito no saldo e remove o registro; 409 se estiver vinculada a pedido/kit/área ou se reverter deixar o item negativo |
 
 ## Consumo por área
 

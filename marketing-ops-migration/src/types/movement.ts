@@ -11,6 +11,9 @@ export interface MovementDTO {
   stockItemId: string;
   stockItem: { name: string; code: string };
   performedBy: { name: string };
+  orderId: string | null;
+  kitOutputId: string | null;
+  areaId: string | null;
   area?: { id: string; name: string } | null;
   unitCost?: string | null;
   totalCost?: string | null;

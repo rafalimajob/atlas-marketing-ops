@@ -82,6 +82,15 @@ saída de kit — ex.: ajuste de inventário, doação recebida, uso em evento.
 - Toda movimentação passa por `applyMovement()`, que rejeita a operação se o saldo resultante
   ficaria negativo.
 - Filtro por período (mesmo componente do Dashboard) e por projeto/campanha; busca por texto.
+- **Editar/excluir (somente ADMIN)**: administradores podem editar ou excluir uma movimentação
+  diretamente na lista. Editar reverte o efeito antigo no saldo do item e aplica o novo (numa
+  única transação); excluir reverte o efeito e remove o registro. Ambas as operações rejeitam a
+  ação (409) se o resultado deixaria algum item com saldo negativo.
+- **Bloqueado para movimentações geradas automaticamente**: uma movimentação criada por outro
+  fluxo — entrega de pedido (`orderId`), saída de kit (`kitOutputId`) ou retirada de Consumo por
+  área (`areaId`) — aparece com um ícone de cadeado em vez dos botões de editar/excluir. Mexer
+  nela aqui desincronizaria o estado do pedido/kit/área de origem; para desfazer esses efeitos,
+  use a tela do módulo correspondente.
 
 ## Kits (`/kits`)
 

@@ -62,6 +62,9 @@ export default async function DashboardPage() {
     stockItemId: m.stockItemId,
     stockItem: m.stockItem,
     performedBy: m.performedBy,
+    orderId: m.orderId,
+    kitOutputId: m.kitOutputId,
+    areaId: m.areaId,
   }));
 
   return <DashboardClient orders={dtoOrders} stock={dtoStock} movements={dtoMovements} />;

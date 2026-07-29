@@ -10,23 +10,25 @@ import { SaveButton, type SaveStatus } from "@/components/ui/save-button";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import { ENTRADA_TYPES, SAIDA_TYPES, MOVEMENT_TYPE_LABEL } from "@/lib/movement-types";
 import type { MovementTypeValue } from "@/lib/movement-types";
-import type { StockOptionDTO } from "@/types/movement";
+import type { MovementDTO, StockOptionDTO } from "@/types/movement";
 
 export function MovementModal({
+  movement,
   stock,
   onClose,
   onSaved,
 }: {
+  movement?: MovementDTO;
   stock: StockOptionDTO[];
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [direction, setDirection] = useState<"ENTRADA" | "SAIDA">("ENTRADA");
-  const [type, setType] = useState<MovementTypeValue>(ENTRADA_TYPES[0]);
-  const [stockItemId, setStockItemId] = useState(stock[0]?.id ?? "");
-  const [quantity, setQuantity] = useState(1);
-  const [project, setProject] = useState("");
-  const [notes, setNotes] = useState("");
+  const [direction, setDirection] = useState<"ENTRADA" | "SAIDA">(movement?.direction ?? "ENTRADA");
+  const [type, setType] = useState<MovementTypeValue>(movement?.type ?? ENTRADA_TYPES[0]);
+  const [stockItemId, setStockItemId] = useState(movement?.stockItemId ?? stock[0]?.id ?? "");
+  const [quantity, setQuantity] = useState(movement?.quantity ?? 1);
+  const [project, setProject] = useState(movement?.project ?? "");
+  const [notes, setNotes] = useState(movement?.notes ?? "");
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -42,13 +44,14 @@ export function MovementModal({
     setError(null);
     setStatus("saving");
     try {
-      const res = await fetch("/api/movements", {
-        method: "POST",
+      const res = await fetch(movement ? `/api/movements/${movement.id}` : "/api/movements", {
+        method: movement ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ direction, type, stockItemId, quantity, project, notes }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Não foi possível registrar a movimentação.");
+      if (!res.ok)
+        throw new Error(data.error ?? `Não foi possível ${movement ? "salvar" : "registrar"} a movimentação.`);
       onSaved();
       setStatus("success");
       setTimeout(onClose, 550);
@@ -59,7 +62,7 @@ export function MovementModal({
   }
 
   return (
-    <Modal title="Nova movimentação" onClose={onClose}>
+    <Modal title={movement ? "Editar movimentação" : "Nova movimentação"} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="flex gap-2">
           <button
@@ -121,8 +124,8 @@ export function MovementModal({
           <SaveButton
             type="submit"
             status={status}
-            idleLabel="Registrar"
-            savingLabel="Registrando..."
+            idleLabel={movement ? "Salvar" : "Registrar"}
+            savingLabel={movement ? "Salvando..." : "Registrando..."}
             disabled={!stockItemId}
           />
         </div>

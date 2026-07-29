@@ -23,6 +23,9 @@ export default async function MovimentacoesPage() {
     stockItemId: m.stockItemId,
     stockItem: m.stockItem,
     performedBy: m.performedBy,
+    orderId: m.orderId,
+    kitOutputId: m.kitOutputId,
+    areaId: m.areaId,
   }));
 
   const stockOptions: StockOptionDTO[] = stock;

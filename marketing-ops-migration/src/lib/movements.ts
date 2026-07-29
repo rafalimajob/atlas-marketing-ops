@@ -59,6 +59,95 @@ export async function applyMovement(input: ApplyMovementInput) {
   });
 }
 
+interface UpdateMovementInput {
+  direction: MovementDirection;
+  type: MovementType;
+  quantity: number;
+  stockItemId: string;
+  project?: string | null;
+  notes?: string | null;
+  performedById: string; // admin que está editando, grava como updatedById do(s) item(ns) afetado(s)
+}
+
+/**
+ * Edita uma movimentação manual (sem orderId/kitOutputId/areaId — ver
+ * `isMovementLocked()`) revertendo o efeito antigo no saldo do item original
+ * e aplicando o novo efeito (possivelmente em outro item), tudo numa única
+ * transação. Rejeita se qualquer um dos dois passos deixaria algum item com
+ * saldo negativo.
+ */
+export async function updateMovement(id: string, input: UpdateMovementInput) {
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.movement.findUniqueOrThrow({ where: { id } });
+
+    const oldDelta = existing.direction === "ENTRADA" ? existing.quantity : -existing.quantity;
+    const revertedItem = await tx.stockItem.update({
+      where: { id: existing.stockItemId },
+      data: { quantity: { decrement: oldDelta }, updatedById: input.performedById },
+    });
+    if (revertedItem.quantity < 0) {
+      throw new Error(
+        `Não é possível editar: reverter o efeito original deixaria "${revertedItem.name}" com saldo negativo.`
+      );
+    }
+
+    const newDelta = input.direction === "ENTRADA" ? input.quantity : -input.quantity;
+    const targetItem =
+      input.stockItemId === existing.stockItemId
+        ? revertedItem
+        : await tx.stockItem.findUniqueOrThrow({ where: { id: input.stockItemId } });
+    if (targetItem.quantity + newDelta < 0) {
+      throw new Error(`Estoque insuficiente: "${targetItem.name}" tem ${targetItem.quantity} disponível.`);
+    }
+    await tx.stockItem.update({
+      where: { id: input.stockItemId },
+      data: { quantity: { increment: newDelta }, updatedById: input.performedById },
+    });
+
+    return tx.movement.update({
+      where: { id },
+      data: {
+        direction: input.direction,
+        type: input.type,
+        quantity: input.quantity,
+        stockItemId: input.stockItemId,
+        project: input.project ?? null,
+        notes: input.notes ?? null,
+      },
+    });
+  });
+}
+
+/**
+ * Exclui uma movimentação manual revertendo seu efeito no saldo do item numa
+ * única transação. Rejeita se reverter deixaria o item com saldo negativo.
+ */
+export async function deleteMovement(id: string, performedById: string) {
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.movement.findUniqueOrThrow({ where: { id } });
+    const delta = existing.direction === "ENTRADA" ? existing.quantity : -existing.quantity;
+
+    const item = await tx.stockItem.update({
+      where: { id: existing.stockItemId },
+      data: { quantity: { decrement: delta }, updatedById: performedById },
+    });
+    if (item.quantity < 0) {
+      throw new Error(`Não é possível excluir: reverter esta movimentação deixaria "${item.name}" com saldo negativo.`);
+    }
+
+    await tx.movement.delete({ where: { id } });
+  });
+}
+
+/**
+ * Movimentações geradas automaticamente por outro fluxo (entrega de pedido,
+ * saída de kit, retirada de consumo por área) não podem ser editadas/excluídas
+ * aqui — fazer isso desincronizaria o estado do pedido/kit/área de origem.
+ */
+export function isMovementLocked(m: { orderId: string | null; kitOutputId: string | null; areaId: string | null }) {
+  return Boolean(m.orderId || m.kitOutputId || m.areaId);
+}
+
 interface RegisterKitOutputInput {
   kitId: string;
   quantity: number; // número de kits retirados
