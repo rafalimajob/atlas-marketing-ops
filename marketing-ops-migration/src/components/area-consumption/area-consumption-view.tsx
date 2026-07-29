@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Settings2, Boxes, Wallet, ArrowDownRight } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { Plus, Settings2, Boxes, Wallet, ArrowDownRight, Edit2, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ import { AreaWithdrawalModal } from "@/components/area-consumption/area-withdraw
 import { AreaManagerModal } from "@/components/area-consumption/area-manager-modal";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorBanner } from "@/components/ui/error-banner";
 import { matchesSearch } from "@/lib/search";
 import { CHART_COLORS } from "@/lib/theme-colors";
 import type { AreaDTO } from "@/types/area";
@@ -31,12 +33,17 @@ export function AreaConsumptionView({
   areas: AreaDTO[];
   stock: StockOptionDTO[];
 }) {
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "ADMIN";
   const [withdrawals, setWithdrawals] = useState(initialWithdrawals);
   const [areaList, setAreaList] = useState(areas);
   const [search, setSearch] = useState("");
   const [range, setRange] = useState(ALL_TIME_RANGE);
+  const [editing, setEditing] = useState<MovementDTO | undefined>(undefined);
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
   const [showManagerModal, setShowManagerModal] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function refreshWithdrawals() {
     const res = await fetch("/api/area-withdrawals");
@@ -46,6 +53,32 @@ export function AreaConsumptionView({
   async function refreshAreas() {
     const res = await fetch("/api/areas");
     if (res.ok) setAreaList(await res.json());
+  }
+
+  function closeWithdrawalModal() {
+    setShowWithdrawalModal(false);
+    setEditing(undefined);
+  }
+
+  async function handleDelete(m: MovementDTO) {
+    if (
+      !confirm(
+        `Excluir esta retirada de ${m.quantity}x "${m.stockItem.name}" pela área "${m.area?.name}"? O saldo do item será ajustado de volta. Essa ação não pode ser desfeita.`
+      )
+    )
+      return;
+    setError(null);
+    setDeletingId(m.id);
+    try {
+      const res = await fetch(`/api/area-withdrawals/${m.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Não foi possível excluir a retirada.");
+      setWithdrawals((prev) => prev.filter((x) => x.id !== m.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro inesperado.");
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   const filtered = useMemo(
@@ -89,7 +122,12 @@ export function AreaConsumptionView({
             <Button variant="secondary" onClick={() => setShowManagerModal(true)}>
               <Settings2 size={16} /> Gerenciar áreas
             </Button>
-            <Button onClick={() => setShowWithdrawalModal(true)}>
+            <Button
+              onClick={() => {
+                setEditing(undefined);
+                setShowWithdrawalModal(true);
+              }}
+            >
               <Plus size={16} /> Nova retirada
             </Button>
           </>
@@ -125,6 +163,8 @@ export function AreaConsumptionView({
         <DateRangeFilter value={range} onChange={setRange} />
       </div>
 
+      {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
+
       <Card className="overflow-x-auto p-0">
         <table className="w-full text-sm">
           <thead className="bg-zinc-50 dark:bg-zinc-900/60">
@@ -137,6 +177,7 @@ export function AreaConsumptionView({
               <th className="px-3 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Valor total</th>
               <th className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Responsável</th>
               <th className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Observação</th>
+              {isAdmin && <th className="px-3 py-2.5" />}
             </tr>
           </thead>
           <tbody>
@@ -157,11 +198,37 @@ export function AreaConsumptionView({
                 </td>
                 <td className="px-3 py-2.5 text-zinc-500 dark:text-zinc-400">{m.performedBy.name}</td>
                 <td className="px-3 py-2.5 text-zinc-500 dark:text-zinc-400">{m.notes ?? "—"}</td>
+                {isAdmin && (
+                  <td className="px-3 py-2.5">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditing(m);
+                          setShowWithdrawalModal(true);
+                        }}
+                        className="text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200"
+                        aria-label="Editar"
+                      >
+                        <Edit2 size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(m)}
+                        disabled={deletingId === m.id}
+                        className="text-brand-crit hover:opacity-70 disabled:opacity-40"
+                        aria-label="Excluir"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={8} className="py-2">
+                <td colSpan={isAdmin ? 9 : 8} className="py-2">
                   <EmptyState
                     message={
                       withdrawals.length === 0
@@ -178,9 +245,10 @@ export function AreaConsumptionView({
 
       {showWithdrawalModal && (
         <AreaWithdrawalModal
+          withdrawal={editing}
           areas={areaList}
           stock={stock}
-          onClose={() => setShowWithdrawalModal(false)}
+          onClose={closeWithdrawalModal}
           onSaved={refreshWithdrawals}
         />
       )}

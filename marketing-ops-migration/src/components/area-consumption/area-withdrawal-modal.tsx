@@ -9,26 +9,28 @@ import { Button } from "@/components/ui/button";
 import { SaveButton, type SaveStatus } from "@/components/ui/save-button";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import type { AreaDTO } from "@/types/area";
-import type { StockOptionDTO } from "@/types/movement";
+import type { MovementDTO, StockOptionDTO } from "@/types/movement";
 
 const fmtBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export function AreaWithdrawalModal({
+  withdrawal,
   areas,
   stock,
   onClose,
   onSaved,
 }: {
+  withdrawal?: MovementDTO;
   areas: AreaDTO[];
   stock: StockOptionDTO[];
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [areaId, setAreaId] = useState(areas[0]?.id ?? "");
-  const [stockItemId, setStockItemId] = useState(stock[0]?.id ?? "");
-  const [quantity, setQuantity] = useState(1);
-  const [project, setProject] = useState("");
-  const [notes, setNotes] = useState("");
+  const [areaId, setAreaId] = useState(withdrawal?.area?.id ?? areas[0]?.id ?? "");
+  const [stockItemId, setStockItemId] = useState(withdrawal?.stockItemId ?? stock[0]?.id ?? "");
+  const [quantity, setQuantity] = useState(withdrawal?.quantity ?? 1);
+  const [project, setProject] = useState(withdrawal?.project ?? "");
+  const [notes, setNotes] = useState(withdrawal?.notes ?? "");
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -41,13 +43,13 @@ export function AreaWithdrawalModal({
     setError(null);
     setStatus("saving");
     try {
-      const res = await fetch("/api/area-withdrawals", {
-        method: "POST",
+      const res = await fetch(withdrawal ? `/api/area-withdrawals/${withdrawal.id}` : "/api/area-withdrawals", {
+        method: withdrawal ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ areaId, stockItemId, quantity, project, notes }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Não foi possível registrar a retirada.");
+      if (!res.ok) throw new Error(data.error ?? `Não foi possível ${withdrawal ? "salvar" : "registrar"} a retirada.`);
       onSaved();
       setStatus("success");
       setTimeout(onClose, 550);
@@ -73,7 +75,7 @@ export function AreaWithdrawalModal({
   }
 
   return (
-    <Modal title="Nova retirada por área" onClose={onClose}>
+    <Modal title={withdrawal ? "Editar retirada" : "Nova retirada por área"} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
 
@@ -120,8 +122,8 @@ export function AreaWithdrawalModal({
           <SaveButton
             type="submit"
             status={status}
-            idleLabel="Registrar retirada"
-            savingLabel="Registrando..."
+            idleLabel={withdrawal ? "Salvar" : "Registrar retirada"}
+            savingLabel={withdrawal ? "Salvando..." : "Registrando..."}
             disabled={!areaId || !stockItemId}
           />
         </div>

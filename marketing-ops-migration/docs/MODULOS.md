@@ -67,9 +67,9 @@ Cadastro dos itens que a área de Marketing controla fisicamente.
   categoria.
 - Duas visualizações (grade de cartões / lista), alternáveis pelo `ViewToggle`.
 - Exclusão é bloqueada se o item tiver pedidos, movimentações ou kits vinculados — a mensagem de
-  erro detalha exatamente quantos de cada, e se as movimentações são manuais (excluíveis na tela
-  de Movimentações, por um administrador) ou geradas automaticamente por pedido/kit/consumo por
-  área (não removíveis diretamente).
+  erro detalha exatamente quantos de cada tipo e onde resolver: movimentação manual → excluir em
+  Movimentações; retirada de Consumo por área → excluir em Consumo por área; movimentação gerada
+  por entrega de pedido ou saída de kit → precisa tratar na tela de origem (Pedidos/Kits).
 
 ## Movimentações (`/movimentacoes`)
 
@@ -124,6 +124,13 @@ Controla o consumo físico **e financeiro** de materiais retirados pelas áreas 
 - Dois gráficos: quantidade retirada por área e valor (R$) retirado por área, cada barra com
   cor própria (mesmo esquema cíclico do Dashboard).
 - Excluir uma área é bloqueado se ela já tiver retirada registrada.
+- **Editar/excluir retirada (somente ADMIN)**: administradores podem editar (área, item,
+  quantidade, projeto, observação) ou excluir uma retirada diretamente na lista — mesma mecânica
+  de reversão de saldo do módulo de Movimentações. Ao editar, o snapshot de custo (`unitCost`) só
+  é recalculado se o item da retirada mudar; se for só a quantidade, o custo unitário original é
+  preservado e apenas o valor total é recalculado. Essas retiradas continuam bloqueadas
+  (cadeado) na tela de Movimentações — o lugar certo para mexer nelas é aqui, onde o contexto de
+  área/custo é tratado corretamente.
 
 ## Usuários (`/usuarios`, somente ADMIN)
 

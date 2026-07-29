@@ -87,17 +87,21 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
   ]);
 
   if (orderCount > 0 || movements.length > 0 || kitItemCount > 0) {
-    const lockedMovements = movements.filter(isMovementLocked).length;
-    const freeMovements = movements.length - lockedMovements;
+    const freeMovements = movements.filter((m) => !isMovementLocked(m)).length;
+    const orderMovements = movements.filter((m) => m.orderId).length;
+    const kitMovements = movements.filter((m) => m.kitOutputId).length;
+    const areaMovements = movements.filter((m) => m.areaId).length;
 
     const parts: string[] = [];
     if (orderCount > 0) parts.push(`${orderCount} pedido(s) de compra`);
     if (freeMovements > 0) {
       parts.push(`${freeMovements} movimentação(ões) manual(is) — exclua-as em Movimentações antes de excluir o item`);
     }
-    if (lockedMovements > 0) {
-      parts.push(`${lockedMovements} movimentação(ões) gerada(s) automaticamente por pedido, kit ou consumo por área`);
+    if (areaMovements > 0) {
+      parts.push(`${areaMovements} retirada(s) de Consumo por área — exclua-as em Consumo por área antes de excluir o item`);
     }
+    if (orderMovements > 0) parts.push(`${orderMovements} movimentação(ões) geradas por entrega de pedido`);
+    if (kitMovements > 0) parts.push(`${kitMovements} movimentação(ões) geradas por saída de kit`);
     if (kitItemCount > 0) parts.push(`${kitItemCount} kit(s) que usam este item na receita`);
 
     return NextResponse.json(

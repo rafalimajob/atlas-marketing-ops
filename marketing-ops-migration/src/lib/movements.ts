@@ -148,6 +148,74 @@ export function isMovementLocked(m: { orderId: string | null; kitOutputId: strin
   return Boolean(m.orderId || m.kitOutputId || m.areaId);
 }
 
+interface UpdateAreaWithdrawalInput {
+  areaId: string;
+  stockItemId: string;
+  quantity: number;
+  project?: string | null;
+  notes?: string | null;
+  performedById: string;
+}
+
+/**
+ * Edita uma retirada de Consumo por área (sempre SAIDA/CONSUMO_INTERNO —
+ * direção e tipo não são editáveis aqui, mesma regra da criação em
+ * `POST /api/area-withdrawals`). Reverte o efeito antigo no saldo e aplica o
+ * novo, na mesma transação. Se o item retirado mudar, o snapshot de custo
+ * (`unitCost`) é recalculado a partir do `lastCost` atual do novo item; se o
+ * item continuar o mesmo, o `unitCost` original é preservado (só o
+ * `totalCost` muda, proporcional à nova quantidade) — o snapshot só deve
+ * mudar quando a correção realmente troca a origem do custo.
+ */
+export async function updateAreaWithdrawal(id: string, input: UpdateAreaWithdrawalInput) {
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.movement.findUniqueOrThrow({ where: { id } });
+    if (!existing.areaId) {
+      throw new Error("Esta movimentação não é uma retirada de Consumo por área.");
+    }
+
+    const oldDelta = existing.direction === "ENTRADA" ? existing.quantity : -existing.quantity;
+    const revertedItem = await tx.stockItem.update({
+      where: { id: existing.stockItemId },
+      data: { quantity: { decrement: oldDelta }, updatedById: input.performedById },
+    });
+    if (revertedItem.quantity < 0) {
+      throw new Error(
+        `Não é possível editar: reverter o efeito original deixaria "${revertedItem.name}" com saldo negativo.`
+      );
+    }
+
+    const targetItem =
+      input.stockItemId === existing.stockItemId
+        ? revertedItem
+        : await tx.stockItem.findUniqueOrThrow({ where: { id: input.stockItemId } });
+    const newDelta = -input.quantity; // retirada por área é sempre SAIDA
+    if (targetItem.quantity + newDelta < 0) {
+      throw new Error(`Estoque insuficiente: "${targetItem.name}" tem ${targetItem.quantity} disponível.`);
+    }
+    await tx.stockItem.update({
+      where: { id: input.stockItemId },
+      data: { quantity: { increment: newDelta }, updatedById: input.performedById },
+    });
+
+    const unitCost = input.stockItemId === existing.stockItemId ? existing.unitCost : targetItem.lastCost;
+    const totalCost = unitCost ? unitCost.times(input.quantity) : null;
+
+    return tx.movement.update({
+      where: { id },
+      data: {
+        areaId: input.areaId,
+        stockItemId: input.stockItemId,
+        quantity: input.quantity,
+        project: input.project ?? null,
+        notes: input.notes ?? null,
+        unitCost,
+        totalCost,
+      },
+    });
+  });
+}
+
 interface RegisterKitOutputInput {
   kitId: string;
   quantity: number; // número de kits retirados

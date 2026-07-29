@@ -41,7 +41,7 @@ Detalhe completo do fluxo: `docs/AUTENTICACAO_E_SEGURANCA.md`.
 | `/api/stock` | POST | Cria item; gera `code` automático; grava `createdById`/`updatedById` |
 | `/api/stock/[id]` | GET | Busca um item |
 | `/api/stock/[id]` | PATCH | Atualiza campos editáveis; sempre atualiza `updatedById` |
-| `/api/stock/[id]` | DELETE | Bloqueado (409) se houver pedido/movimentação/kit vinculado — a mensagem detalha quantos de cada, e se as movimentações são manuais (excluíveis em Movimentações) ou geradas automaticamente |
+| `/api/stock/[id]` | DELETE | Bloqueado (409) se houver pedido/movimentação/kit vinculado — a mensagem detalha quantos de cada tipo e onde resolver cada um (movimentação manual → Movimentações; retirada de área → Consumo por área; gerada por pedido/kit → tratar na origem) |
 
 ## Categorias de estoque
 
@@ -71,6 +71,8 @@ Detalhe completo do fluxo: `docs/AUTENTICACAO_E_SEGURANCA.md`.
 | `/api/areas/[id]` | DELETE | Bloqueado (409) se houver retirada vinculada |
 | `/api/area-withdrawals` | GET | Lista todas as `Movement` com `areaId` preenchido |
 | `/api/area-withdrawals` | POST | Valida área/item/quantidade; força `direction: SAIDA`, `type: CONSUMO_INTERNO` no servidor; chama `applyMovement()` |
+| `/api/area-withdrawals/[id]` | PATCH | **Somente ADMIN**. Reverte o efeito antigo no saldo e aplica o novo; recalcula `unitCost`/`totalCost` só se o item mudar; 409 se a movimentação não tiver `areaId` ou se o resultado deixar algum item negativo |
+| `/api/area-withdrawals/[id]` | DELETE | **Somente ADMIN**. Reverte o efeito no saldo e remove o registro; 409 se a movimentação não tiver `areaId` ou se reverter deixar o item negativo |
 
 ## Kits
 
