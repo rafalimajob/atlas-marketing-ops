@@ -200,7 +200,10 @@ export function OrderTable({ initialOrders, stock }: { initialOrders: OrderDTO[]
                       </button>
                       <button
                         type="button"
-                        onClick={() => setConfirmDeleteTarget(o)}
+                        onClick={() => {
+                          setError(null);
+                          setConfirmDeleteTarget(o);
+                        }}
                         disabled={deletingId === o.id}
                         className="text-brand-crit hover:opacity-70 disabled:opacity-40"
                         aria-label="Excluir"
@@ -233,8 +236,12 @@ export function OrderTable({ initialOrders, stock }: { initialOrders: OrderDTO[]
           cancelLabel="Cancelar"
           danger
           loading={deletingId === confirmDeleteTarget.id}
+          error={error}
           onConfirm={confirmDelete}
-          onCancel={() => setConfirmDeleteTarget(null)}
+          onCancel={() => {
+            setConfirmDeleteTarget(null);
+            setError(null);
+          }}
         />
       )}
     </div>

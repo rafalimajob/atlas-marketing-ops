@@ -168,7 +168,10 @@ export function MovementTable({
                           </button>
                           <button
                             type="button"
-                            onClick={() => setConfirmDeleteTarget(m)}
+                            onClick={() => {
+                              setError(null);
+                              setConfirmDeleteTarget(m);
+                            }}
                             disabled={deletingId === m.id}
                             className="text-brand-crit hover:opacity-70 disabled:opacity-40"
                             aria-label="Excluir"
@@ -209,8 +212,12 @@ export function MovementTable({
           cancelLabel="Cancelar"
           danger
           loading={deletingId === confirmDeleteTarget.id}
+          error={error}
           onConfirm={confirmDelete}
-          onCancel={() => setConfirmDeleteTarget(null)}
+          onCancel={() => {
+            setConfirmDeleteTarget(null);
+            setError(null);
+          }}
         />
       )}
     </div>

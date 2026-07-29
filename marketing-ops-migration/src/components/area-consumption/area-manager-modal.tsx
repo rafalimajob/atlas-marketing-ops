@@ -136,7 +136,10 @@ export function AreaManagerModal({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setConfirmDeleteTarget(a)}
+                    onClick={() => {
+                      setError(null);
+                      setConfirmDeleteTarget(a);
+                    }}
                     disabled={deletingId === a.id}
                     className="text-brand-crit hover:opacity-70 disabled:opacity-40"
                   >
@@ -164,8 +167,12 @@ export function AreaManagerModal({
           cancelLabel="Cancelar"
           danger
           loading={deletingId === confirmDeleteTarget.id}
+          error={error}
           onConfirm={confirmDelete}
-          onCancel={() => setConfirmDeleteTarget(null)}
+          onCancel={() => {
+            setConfirmDeleteTarget(null);
+            setError(null);
+          }}
         />
       )}
     </Modal>

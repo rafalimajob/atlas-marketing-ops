@@ -72,6 +72,11 @@ export function StockGrid({
     setShowModal(true);
   }
 
+  function requestDelete(item: StockItemDTO) {
+    setError(null);
+    setConfirmDeleteTarget(item);
+  }
+
   async function confirmDelete() {
     const item = confirmDeleteTarget;
     if (!item) return;
@@ -125,9 +130,9 @@ export function StockGrid({
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
 
       {view === "grid" ? (
-        <StockCardGrid items={filtered} onEdit={openEdit} onDelete={setConfirmDeleteTarget} deletingId={deletingId} />
+        <StockCardGrid items={filtered} onEdit={openEdit} onDelete={requestDelete} deletingId={deletingId} />
       ) : (
-        <StockListView items={filtered} onEdit={openEdit} onDelete={setConfirmDeleteTarget} deletingId={deletingId} />
+        <StockListView items={filtered} onEdit={openEdit} onDelete={requestDelete} deletingId={deletingId} />
       )}
 
       {showModal && (
@@ -157,8 +162,12 @@ export function StockGrid({
           cancelLabel="Cancelar"
           danger
           loading={deletingId === confirmDeleteTarget.id}
+          error={error}
           onConfirm={confirmDelete}
-          onCancel={() => setConfirmDeleteTarget(null)}
+          onCancel={() => {
+            setConfirmDeleteTarget(null);
+            setError(null);
+          }}
         />
       )}
     </div>

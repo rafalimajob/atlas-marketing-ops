@@ -136,7 +136,10 @@ export function CategoryManagerModal({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setConfirmDeleteTarget(c)}
+                    onClick={() => {
+                      setError(null);
+                      setConfirmDeleteTarget(c);
+                    }}
                     disabled={deletingId === c.id}
                     className="text-brand-crit hover:opacity-70 disabled:opacity-40"
                   >
@@ -164,8 +167,12 @@ export function CategoryManagerModal({
           cancelLabel="Cancelar"
           danger
           loading={deletingId === confirmDeleteTarget.id}
+          error={error}
           onConfirm={confirmDelete}
-          onCancel={() => setConfirmDeleteTarget(null)}
+          onCancel={() => {
+            setConfirmDeleteTarget(null);
+            setError(null);
+          }}
         />
       )}
     </Modal>

@@ -65,7 +65,10 @@ export function KitGrid({ initialKits, stock }: { initialKits: KitDTO[]; stock: 
               <div className="font-medium text-zinc-900 dark:text-zinc-50">{k.name}</div>
               <button
                 type="button"
-                onClick={() => setConfirmDeleteTarget(k)}
+                onClick={() => {
+                  setError(null);
+                  setConfirmDeleteTarget(k);
+                }}
                 disabled={deletingId === k.id}
                 className="shrink-0 text-brand-crit hover:opacity-70 disabled:opacity-40"
                 aria-label="Excluir kit"
@@ -103,8 +106,12 @@ export function KitGrid({ initialKits, stock }: { initialKits: KitDTO[]; stock: 
           cancelLabel="Cancelar"
           danger
           loading={deletingId === confirmDeleteTarget.id}
+          error={error}
           onConfirm={confirmDelete}
-          onCancel={() => setConfirmDeleteTarget(null)}
+          onCancel={() => {
+            setConfirmDeleteTarget(null);
+            setError(null);
+          }}
         />
       )}
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { ErrorBanner } from "@/components/ui/error-banner";
 
 interface ConfirmDialogProps {
   title: string;
@@ -11,6 +12,7 @@ interface ConfirmDialogProps {
   onCancel: () => void;
   loading?: boolean;
   danger?: boolean;
+  error?: string | null;
 }
 
 export function ConfirmDialog({
@@ -22,6 +24,7 @@ export function ConfirmDialog({
   onCancel,
   loading,
   danger,
+  error,
 }: ConfirmDialogProps) {
   return (
     <div
@@ -34,6 +37,11 @@ export function ConfirmDialog({
       >
         <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">{title}</h3>
         <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{message}</p>
+        {error && (
+          <div className="mt-3">
+            <ErrorBanner message={error} />
+          </div>
+        )}
         <div className="mt-5 flex justify-end gap-2">
           <Button variant="secondary" onClick={onCancel} disabled={loading}>
             {cancelLabel}
