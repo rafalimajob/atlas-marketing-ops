@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { ViewToggle, type ViewMode } from "@/components/ui/view-toggle";
 import { ErrorBanner } from "@/components/ui/error-banner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { StockCardGrid } from "@/components/stock/stock-card-grid";
 import { StockListView } from "@/components/stock/stock-list-view";
 import { StockModal } from "@/components/stock/stock-modal";
@@ -31,6 +32,7 @@ export function StockGrid({
   const [editing, setEditing] = useState<StockItemDTO | undefined>(undefined);
   const [showModal, setShowModal] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [confirmDeleteTarget, setConfirmDeleteTarget] = useState<StockItemDTO | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,8 +72,9 @@ export function StockGrid({
     setShowModal(true);
   }
 
-  async function handleDelete(item: StockItemDTO) {
-    if (!confirm(`Excluir "${item.name}" (${item.code})? Essa ação não pode ser desfeita.`)) return;
+  async function confirmDelete() {
+    const item = confirmDeleteTarget;
+    if (!item) return;
     setError(null);
     setDeletingId(item.id);
     try {
@@ -79,6 +82,7 @@ export function StockGrid({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Não foi possível excluir o item.");
       setItems((prev) => prev.filter((s) => s.id !== item.id));
+      setConfirmDeleteTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro inesperado.");
     } finally {
@@ -121,9 +125,9 @@ export function StockGrid({
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
 
       {view === "grid" ? (
-        <StockCardGrid items={filtered} onEdit={openEdit} onDelete={handleDelete} deletingId={deletingId} />
+        <StockCardGrid items={filtered} onEdit={openEdit} onDelete={setConfirmDeleteTarget} deletingId={deletingId} />
       ) : (
-        <StockListView items={filtered} onEdit={openEdit} onDelete={handleDelete} deletingId={deletingId} />
+        <StockListView items={filtered} onEdit={openEdit} onDelete={setConfirmDeleteTarget} deletingId={deletingId} />
       )}
 
       {showModal && (
@@ -142,6 +146,19 @@ export function StockGrid({
           categories={categories}
           onClose={() => setShowCategoryManager(false)}
           onChanged={refreshCategories}
+        />
+      )}
+
+      {confirmDeleteTarget && (
+        <ConfirmDialog
+          title="Excluir item"
+          message={`Excluir "${confirmDeleteTarget.name}" (${confirmDeleteTarget.code})? Essa ação não pode ser desfeita.`}
+          confirmLabel="Excluir"
+          cancelLabel="Cancelar"
+          danger
+          loading={deletingId === confirmDeleteTarget.id}
+          onConfirm={confirmDelete}
+          onCancel={() => setConfirmDeleteTarget(null)}
         />
       )}
     </div>

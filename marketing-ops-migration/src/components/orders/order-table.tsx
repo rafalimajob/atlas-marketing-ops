@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ErrorBanner } from "@/components/ui/error-banner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { OrderModal } from "@/components/orders/order-modal";
@@ -52,6 +53,7 @@ export function OrderTable({ initialOrders, stock }: { initialOrders: OrderDTO[]
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [editing, setEditing] = useState<OrderDTO | undefined>(undefined);
   const [showModal, setShowModal] = useState(false);
+  const [confirmDeleteTarget, setConfirmDeleteTarget] = useState<OrderDTO | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,9 +86,9 @@ export function OrderTable({ initialOrders, stock }: { initialOrders: OrderDTO[]
     setEditing(undefined);
   }
 
-  async function handleDelete(order: OrderDTO) {
-    if (!confirm(`Excluir o pedido de "${order.stockItem.name}" (OC ${order.ocNumber})? Essa ação não pode ser desfeita.`))
-      return;
+  async function confirmDelete() {
+    const order = confirmDeleteTarget;
+    if (!order) return;
     setError(null);
     setDeletingId(order.id);
     try {
@@ -94,6 +96,7 @@ export function OrderTable({ initialOrders, stock }: { initialOrders: OrderDTO[]
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Não foi possível excluir o pedido.");
       setOrders((prev) => prev.filter((o) => o.id !== order.id));
+      setConfirmDeleteTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro inesperado.");
     } finally {
@@ -197,7 +200,7 @@ export function OrderTable({ initialOrders, stock }: { initialOrders: OrderDTO[]
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDelete(o)}
+                        onClick={() => setConfirmDeleteTarget(o)}
                         disabled={deletingId === o.id}
                         className="text-brand-crit hover:opacity-70 disabled:opacity-40"
                         aria-label="Excluir"
@@ -221,6 +224,19 @@ export function OrderTable({ initialOrders, stock }: { initialOrders: OrderDTO[]
       </Card>
 
       {showModal && <OrderModal order={editing} stock={stock} onClose={closeModal} onSaved={refresh} />}
+
+      {confirmDeleteTarget && (
+        <ConfirmDialog
+          title="Excluir pedido"
+          message={`Excluir o pedido de "${confirmDeleteTarget.stockItem.name}" (OC ${confirmDeleteTarget.ocNumber})? Essa ação não pode ser desfeita.`}
+          confirmLabel="Excluir"
+          cancelLabel="Cancelar"
+          danger
+          loading={deletingId === confirmDeleteTarget.id}
+          onConfirm={confirmDelete}
+          onCancel={() => setConfirmDeleteTarget(null)}
+        />
+      )}
     </div>
   );
 }

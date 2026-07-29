@@ -5,6 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ErrorBanner } from "@/components/ui/error-banner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { KitModal } from "@/components/kits/kit-modal";
@@ -16,6 +17,7 @@ export function KitGrid({ initialKits, stock }: { initialKits: KitDTO[]; stock: 
   const [kits, setKits] = useState(initialKits);
   const [showModal, setShowModal] = useState(false);
   const [outputKit, setOutputKit] = useState<KitDTO | undefined>(undefined);
+  const [confirmDeleteTarget, setConfirmDeleteTarget] = useState<KitDTO | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,8 +26,9 @@ export function KitGrid({ initialKits, stock }: { initialKits: KitDTO[]; stock: 
     if (res.ok) setKits(await res.json());
   }
 
-  async function handleDelete(kit: KitDTO) {
-    if (!confirm(`Excluir o kit "${kit.name}"? Essa ação não pode ser desfeita.`)) return;
+  async function confirmDelete() {
+    const kit = confirmDeleteTarget;
+    if (!kit) return;
     setError(null);
     setDeletingId(kit.id);
     try {
@@ -33,6 +36,7 @@ export function KitGrid({ initialKits, stock }: { initialKits: KitDTO[]; stock: 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Não foi possível excluir o kit.");
       setKits((prev) => prev.filter((k) => k.id !== kit.id));
+      setConfirmDeleteTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro inesperado.");
     } finally {
@@ -61,7 +65,7 @@ export function KitGrid({ initialKits, stock }: { initialKits: KitDTO[]; stock: 
               <div className="font-medium text-zinc-900 dark:text-zinc-50">{k.name}</div>
               <button
                 type="button"
-                onClick={() => handleDelete(k)}
+                onClick={() => setConfirmDeleteTarget(k)}
                 disabled={deletingId === k.id}
                 className="shrink-0 text-brand-crit hover:opacity-70 disabled:opacity-40"
                 aria-label="Excluir kit"
@@ -90,6 +94,19 @@ export function KitGrid({ initialKits, stock }: { initialKits: KitDTO[]; stock: 
 
       {showModal && <KitModal stock={stock} onClose={() => setShowModal(false)} onSaved={refresh} />}
       {outputKit && <KitOutputModal kit={outputKit} onClose={() => setOutputKit(undefined)} onSaved={refresh} />}
+
+      {confirmDeleteTarget && (
+        <ConfirmDialog
+          title="Excluir kit"
+          message={`Excluir o kit "${confirmDeleteTarget.name}"? Essa ação não pode ser desfeita.`}
+          confirmLabel="Excluir"
+          cancelLabel="Cancelar"
+          danger
+          loading={deletingId === confirmDeleteTarget.id}
+          onConfirm={confirmDelete}
+          onCancel={() => setConfirmDeleteTarget(null)}
+        />
+      )}
     </div>
   );
 }

@@ -14,6 +14,7 @@ import { AreaManagerModal } from "@/components/area-consumption/area-manager-mod
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorBanner } from "@/components/ui/error-banner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { matchesSearch } from "@/lib/search";
 import { CHART_COLORS } from "@/lib/theme-colors";
 import type { AreaDTO } from "@/types/area";
@@ -42,6 +43,7 @@ export function AreaConsumptionView({
   const [editing, setEditing] = useState<MovementDTO | undefined>(undefined);
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
   const [showManagerModal, setShowManagerModal] = useState(false);
+  const [confirmDeleteTarget, setConfirmDeleteTarget] = useState<MovementDTO | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,13 +62,9 @@ export function AreaConsumptionView({
     setEditing(undefined);
   }
 
-  async function handleDelete(m: MovementDTO) {
-    if (
-      !confirm(
-        `Excluir esta retirada de ${m.quantity}x "${m.stockItem.name}" pela área "${m.area?.name}"? O saldo do item será ajustado de volta. Essa ação não pode ser desfeita.`
-      )
-    )
-      return;
+  async function confirmDelete() {
+    const m = confirmDeleteTarget;
+    if (!m) return;
     setError(null);
     setDeletingId(m.id);
     try {
@@ -74,6 +72,7 @@ export function AreaConsumptionView({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Não foi possível excluir a retirada.");
       setWithdrawals((prev) => prev.filter((x) => x.id !== m.id));
+      setConfirmDeleteTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro inesperado.");
     } finally {
@@ -214,7 +213,7 @@ export function AreaConsumptionView({
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDelete(m)}
+                        onClick={() => setConfirmDeleteTarget(m)}
                         disabled={deletingId === m.id}
                         className="text-brand-crit hover:opacity-70 disabled:opacity-40"
                         aria-label="Excluir"
@@ -257,6 +256,19 @@ export function AreaConsumptionView({
           areas={areaList}
           onClose={() => setShowManagerModal(false)}
           onChanged={refreshAreas}
+        />
+      )}
+
+      {confirmDeleteTarget && (
+        <ConfirmDialog
+          title="Excluir retirada"
+          message={`Excluir esta retirada de ${confirmDeleteTarget.quantity}x "${confirmDeleteTarget.stockItem.name}" pela área "${confirmDeleteTarget.area?.name}"? O saldo do item será ajustado de volta. Essa ação não pode ser desfeita.`}
+          confirmLabel="Excluir"
+          cancelLabel="Cancelar"
+          danger
+          loading={deletingId === confirmDeleteTarget.id}
+          onConfirm={confirmDelete}
+          onCancel={() => setConfirmDeleteTarget(null)}
         />
       )}
     </div>

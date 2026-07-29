@@ -66,7 +66,7 @@ CHART_COLORS = {
 | `Button` | variantes `primary` / `secondary` / `ghost` / `danger` / `success`; tamanhos `sm` / `md` |
 | `Card` | contêiner com borda, sombra suave e cantos arredondados |
 | `Modal` | diálogo centralizado com overlay, fecha ao clicar fora, animação de entrada |
-| `ConfirmDialog` | confirmação sim/não sobre uma ação (usado antes de qualquer ação destrutiva ou sensível) |
+| `ConfirmDialog` | confirmação sim/não sobre uma ação — padrão único para *toda* exclusão do sistema (nunca `window.confirm()` nativo do navegador); prop `danger` deixa o botão de confirmar em vermelho (`Button variant="danger"`) para ações destrutivas |
 | `Badge` | pílula colorida com marcador (bolinha) — usado para status/papel/etc. |
 | `ErrorBanner` | alerta inline vermelho, com botão de fechar opcional (`onDismiss`) |
 | `EmptyState` | placeholder centralizado (ícone + texto) para listas vazias |

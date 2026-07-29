@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ErrorBanner } from "@/components/ui/error-banner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { CategoryDTO } from "@/types/category";
 
 export function CategoryManagerModal({
@@ -21,6 +22,7 @@ export function CategoryManagerModal({
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [confirmDeleteTarget, setConfirmDeleteTarget] = useState<CategoryDTO | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,8 +74,9 @@ export function CategoryManagerModal({
     }
   }
 
-  async function handleDelete(category: CategoryDTO) {
-    if (!confirm(`Excluir a categoria "${category.name}"? Essa ação não pode ser desfeita.`)) return;
+  async function confirmDelete() {
+    const category = confirmDeleteTarget;
+    if (!category) return;
     setError(null);
     setDeletingId(category.id);
     try {
@@ -81,6 +84,7 @@ export function CategoryManagerModal({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Não foi possível excluir a categoria.");
       onChanged();
+      setConfirmDeleteTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro inesperado.");
     } finally {
@@ -132,7 +136,7 @@ export function CategoryManagerModal({
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleDelete(c)}
+                    onClick={() => setConfirmDeleteTarget(c)}
                     disabled={deletingId === c.id}
                     className="text-brand-crit hover:opacity-70 disabled:opacity-40"
                   >
@@ -151,6 +155,19 @@ export function CategoryManagerModal({
           </Button>
         </div>
       </div>
+
+      {confirmDeleteTarget && (
+        <ConfirmDialog
+          title="Excluir categoria"
+          message={`Excluir a categoria "${confirmDeleteTarget.name}"? Essa ação não pode ser desfeita.`}
+          confirmLabel="Excluir"
+          cancelLabel="Cancelar"
+          danger
+          loading={deletingId === confirmDeleteTarget.id}
+          onConfirm={confirmDelete}
+          onCancel={() => setConfirmDeleteTarget(null)}
+        />
+      )}
     </Modal>
   );
 }

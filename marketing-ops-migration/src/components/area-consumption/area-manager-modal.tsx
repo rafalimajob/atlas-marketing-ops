@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ErrorBanner } from "@/components/ui/error-banner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { AreaDTO } from "@/types/area";
 
 export function AreaManagerModal({
@@ -21,6 +22,7 @@ export function AreaManagerModal({
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [confirmDeleteTarget, setConfirmDeleteTarget] = useState<AreaDTO | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,8 +74,9 @@ export function AreaManagerModal({
     }
   }
 
-  async function handleDelete(area: AreaDTO) {
-    if (!confirm(`Excluir a área "${area.name}"? Essa ação não pode ser desfeita.`)) return;
+  async function confirmDelete() {
+    const area = confirmDeleteTarget;
+    if (!area) return;
     setError(null);
     setDeletingId(area.id);
     try {
@@ -81,6 +84,7 @@ export function AreaManagerModal({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Não foi possível excluir a área.");
       onChanged();
+      setConfirmDeleteTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro inesperado.");
     } finally {
@@ -132,7 +136,7 @@ export function AreaManagerModal({
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleDelete(a)}
+                    onClick={() => setConfirmDeleteTarget(a)}
                     disabled={deletingId === a.id}
                     className="text-brand-crit hover:opacity-70 disabled:opacity-40"
                   >
@@ -151,6 +155,19 @@ export function AreaManagerModal({
           </Button>
         </div>
       </div>
+
+      {confirmDeleteTarget && (
+        <ConfirmDialog
+          title="Excluir área"
+          message={`Excluir a área "${confirmDeleteTarget.name}"? Essa ação não pode ser desfeita.`}
+          confirmLabel="Excluir"
+          cancelLabel="Cancelar"
+          danger
+          loading={deletingId === confirmDeleteTarget.id}
+          onConfirm={confirmDelete}
+          onCancel={() => setConfirmDeleteTarget(null)}
+        />
+      )}
     </Modal>
   );
 }

@@ -10,6 +10,7 @@ import { DateRangeFilter, ALL_TIME_RANGE, isInRange } from "@/components/ui/date
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorBanner } from "@/components/ui/error-banner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { MovementModal } from "@/components/movements/movement-modal";
 import { MOVEMENT_TYPE_LABEL } from "@/lib/movement-types";
 import { matchesSearch } from "@/lib/search";
@@ -36,6 +37,7 @@ export function MovementTable({
   const [range, setRange] = useState(ALL_TIME_RANGE);
   const [editing, setEditing] = useState<MovementDTO | undefined>(undefined);
   const [showModal, setShowModal] = useState(false);
+  const [confirmDeleteTarget, setConfirmDeleteTarget] = useState<MovementDTO | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,13 +64,9 @@ export function MovementTable({
     setEditing(undefined);
   }
 
-  async function handleDelete(m: MovementDTO) {
-    if (
-      !confirm(
-        `Excluir esta movimentação de ${m.direction === "ENTRADA" ? "entrada" : "saída"} de ${m.quantity}x "${m.stockItem.name}"? O saldo do item será ajustado de volta. Essa ação não pode ser desfeita.`
-      )
-    )
-      return;
+  async function confirmDelete() {
+    const m = confirmDeleteTarget;
+    if (!m) return;
     setError(null);
     setDeletingId(m.id);
     try {
@@ -76,6 +74,7 @@ export function MovementTable({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Não foi possível excluir a movimentação.");
       setMovements((prev) => prev.filter((x) => x.id !== m.id));
+      setConfirmDeleteTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro inesperado.");
     } finally {
@@ -169,7 +168,7 @@ export function MovementTable({
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDelete(m)}
+                            onClick={() => setConfirmDeleteTarget(m)}
                             disabled={deletingId === m.id}
                             className="text-brand-crit hover:opacity-70 disabled:opacity-40"
                             aria-label="Excluir"
@@ -201,6 +200,19 @@ export function MovementTable({
       </Card>
 
       {showModal && <MovementModal movement={editing} stock={stock} onClose={closeModal} onSaved={refresh} />}
+
+      {confirmDeleteTarget && (
+        <ConfirmDialog
+          title="Excluir movimentação"
+          message={`Excluir esta movimentação de ${confirmDeleteTarget.direction === "ENTRADA" ? "entrada" : "saída"} de ${confirmDeleteTarget.quantity}x "${confirmDeleteTarget.stockItem.name}"? O saldo do item será ajustado de volta. Essa ação não pode ser desfeita.`}
+          confirmLabel="Excluir"
+          cancelLabel="Cancelar"
+          danger
+          loading={deletingId === confirmDeleteTarget.id}
+          onConfirm={confirmDelete}
+          onCancel={() => setConfirmDeleteTarget(null)}
+        />
+      )}
     </div>
   );
 }
