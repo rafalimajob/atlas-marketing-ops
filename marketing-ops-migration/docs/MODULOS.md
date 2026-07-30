@@ -103,6 +103,9 @@ Um kit é uma "receita" (lista de itens de estoque + quantidade de cada) que pod
 lote — ex.: "Kit Boas-vindas" = 1 camiseta + 1 ecobag + 1 bloco.
 
 - Cadastro do kit: nome + lista de itens (sem duplicar o mesmo item dentro do mesmo kit).
+- Cada cartão de kit mostra o valor (`StockItem.lastCost × quantidade`) de cada item componente e
+  o valor total do kit somado; itens sem custo cadastrado aparecem com "—" e o total é marcado
+  como "(parcial)" nesse caso, já que não reflete o custo real do kit inteiro.
 - **Editar um kit (somente ADMIN)**: administradores podem renomear o kit e substituir sua lista
   de itens/quantidades a qualquer momento. A edição só afeta a "receita" do kit dali para frente —
   saídas (`KitOutput`/`Movement`) já registradas guardam seu próprio snapshot de item/quantidade e

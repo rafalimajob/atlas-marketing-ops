@@ -15,6 +15,21 @@ import type { KitDTO } from "@/types/kit";
 import type { StockOptionDTO } from "@/types/movement";
 import type { AreaDTO } from "@/types/area";
 
+const fmtBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+function kitValue(k: KitDTO) {
+  let total = 0;
+  let hasMissingCost = false;
+  for (const ci of k.items) {
+    if (ci.stockItem.lastCost) {
+      total += Number(ci.stockItem.lastCost) * ci.quantity;
+    } else {
+      hasMissingCost = true;
+    }
+  }
+  return { total, hasMissingCost };
+}
+
 export function KitGrid({
   initialKits,
   stock,
@@ -77,7 +92,9 @@ export function KitGrid({
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {kits.map((k) => (
+        {kits.map((k) => {
+          const { total, hasMissingCost } = kitValue(k);
+          return (
           <Card key={k.id} className="flex flex-col transition-shadow hover:shadow-md">
             <div className="mb-2 flex items-start justify-between gap-2">
               <div className="font-medium text-zinc-900 dark:text-zinc-50">{k.name}</div>
@@ -109,18 +126,30 @@ export function KitGrid({
                 </div>
               )}
             </div>
-            <ul className="mb-4 flex-1 space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
+            <ul className="mb-3 flex-1 space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
               {k.items.map((ci) => (
-                <li key={ci.id}>
-                  {ci.quantity}x {ci.stockItem.name}
+                <li key={ci.id} className="flex items-center justify-between gap-2">
+                  <span className="truncate">
+                    {ci.quantity}x {ci.stockItem.name}
+                  </span>
+                  <span className="shrink-0 tabular-nums text-zinc-500 dark:text-zinc-400">
+                    {ci.stockItem.lastCost ? fmtBRL(Number(ci.stockItem.lastCost) * ci.quantity) : "—"}
+                  </span>
                 </li>
               ))}
             </ul>
+            <div className="mb-4 flex items-center justify-between border-t border-zinc-100 pt-2 text-sm dark:border-zinc-800">
+              <span className="font-medium text-zinc-900 dark:text-zinc-50">
+                Valor total {hasMissingCost && <span className="font-normal text-zinc-400">(parcial)</span>}
+              </span>
+              <span className="font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">{fmtBRL(total)}</span>
+            </div>
             <Button variant="secondary" className="w-full justify-center" onClick={() => setOutputKit(k)}>
               Registrar saída de kit
             </Button>
           </Card>
-        ))}
+          );
+        })}
         {kits.length === 0 && (
           <div className="sm:col-span-2 lg:col-span-3">
             <EmptyState message="Nenhum kit cadastrado." />

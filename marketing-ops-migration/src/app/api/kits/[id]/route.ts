@@ -54,7 +54,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
           create: items.map((i) => ({ stockItemId: i.stockItemId, quantity: i.quantity })),
         },
       },
-      include: { items: { include: { stockItem: { select: { name: true, code: true } } } } },
+      include: { items: { include: { stockItem: { select: { name: true, code: true, lastCost: true } } } } },
     });
 
     await logHistory({

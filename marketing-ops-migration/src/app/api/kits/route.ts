@@ -10,7 +10,7 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
 
   const kits = await prisma.kit.findMany({
-    include: { items: { include: { stockItem: { select: { name: true, code: true } } } } },
+    include: { items: { include: { stockItem: { select: { name: true, code: true, lastCost: true } } } } },
     orderBy: { name: "asc" },
   });
   return NextResponse.json(kits);
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         name,
         items: { create: items.map((i) => ({ stockItemId: i.stockItemId, quantity: i.quantity })) },
       },
-      include: { items: { include: { stockItem: { select: { name: true, code: true } } } } },
+      include: { items: { include: { stockItem: { select: { name: true, code: true, lastCost: true } } } } },
     });
 
     await logHistory({
