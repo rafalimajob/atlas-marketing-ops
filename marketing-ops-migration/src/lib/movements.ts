@@ -286,3 +286,26 @@ export async function registerKitOutput(input: RegisterKitOutputInput) {
     return kitOutput;
   });
 }
+
+/**
+ * Desfaz uma saída de kit (engano de quantidade, kit errado etc.): devolve ao
+ * estoque a quantidade retirada de cada item componente, remove as N
+ * Movements geradas e o próprio KitOutput — tudo numa única transação.
+ * Diferente de `updateMovement`/`deleteMovement`, não precisa validar saldo
+ * negativo: desfazer uma saída sempre *devolve* estoque, nunca subtrai.
+ */
+export async function deleteKitOutput(id: string, performedById: string) {
+  return prisma.$transaction(async (tx) => {
+    const movements = await tx.movement.findMany({ where: { kitOutputId: id } });
+
+    for (const m of movements) {
+      await tx.stockItem.update({
+        where: { id: m.stockItemId },
+        data: { quantity: { increment: m.quantity }, updatedById: performedById },
+      });
+    }
+
+    await tx.movement.deleteMany({ where: { kitOutputId: id } });
+    await tx.kitOutput.delete({ where: { id } });
+  });
+}

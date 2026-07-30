@@ -83,6 +83,7 @@ Detalhe completo do fluxo: `docs/AUTENTICACAO_E_SEGURANCA.md`.
 | `/api/kits/[id]` | PATCH | **Somente ADMIN**. Valida nome/itens (sem duplicata); substitui a lista de `KitItem`s por completo. Não afeta `KitOutput`/`Movement` já registrados |
 | `/api/kits/[id]` | DELETE | Bloqueado (409) se o kit já tiver saída registrada |
 | `/api/kits/[id]/output` | POST | Exige `areaId`; valida saldo de todos os componentes, cria `KitOutput` + N `Movement` (`SAIDA`/`KIT`), cada uma com a área e um snapshot de `unitCost`/`totalCost` (mesma regra de `applyMovement`), contabilizando a saída em Consumo por área |
+| `/api/kit-outputs/[id]` | DELETE | **Somente ADMIN**. Desfaz a saída inteira: devolve ao estoque a quantidade de cada item componente e remove as `Movement`s geradas e o `KitOutput`. Nunca falha por saldo negativo (só devolve estoque) |
 
 ## Pedidos
 

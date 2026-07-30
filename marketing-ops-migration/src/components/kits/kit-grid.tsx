@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, History } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ErrorBanner } from "@/components/ui/error-banner";
@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { KitModal } from "@/components/kits/kit-modal";
 import { KitOutputModal } from "@/components/kits/kit-output-modal";
+import { KitOutputHistoryModal } from "@/components/kits/kit-output-history-modal";
 import type { KitDTO } from "@/types/kit";
 import type { StockOptionDTO } from "@/types/movement";
 import type { AreaDTO } from "@/types/area";
@@ -45,9 +46,11 @@ export function KitGrid({
   const [editing, setEditing] = useState<KitDTO | undefined>(undefined);
   const [showModal, setShowModal] = useState(false);
   const [outputKit, setOutputKit] = useState<KitDTO | undefined>(undefined);
+  const [historyKitId, setHistoryKitId] = useState<string | undefined>(undefined);
   const [confirmDeleteTarget, setConfirmDeleteTarget] = useState<KitDTO | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const historyKit = kits.find((k) => k.id === historyKitId);
 
   async function refresh() {
     const res = await fetch("/api/kits");
@@ -144,6 +147,15 @@ export function KitGrid({
               </span>
               <span className="font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">{fmtBRL(total)}</span>
             </div>
+            {isAdmin && k.outputs.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setHistoryKitId(k.id)}
+                className="mb-3 flex items-center gap-1 self-start text-xs text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+              >
+                <History size={12} /> {k.outputs.length} saída(s) registrada(s) — ver/desfazer
+              </button>
+            )}
             <Button variant="secondary" className="w-full justify-center" onClick={() => setOutputKit(k)}>
               Registrar saída de kit
             </Button>
@@ -170,6 +182,9 @@ export function KitGrid({
       )}
       {outputKit && (
         <KitOutputModal kit={outputKit} areas={areas} onClose={() => setOutputKit(undefined)} onSaved={refresh} />
+      )}
+      {historyKit && (
+        <KitOutputHistoryModal kit={historyKit} onClose={() => setHistoryKitId(undefined)} onChanged={refresh} />
       )}
 
       {confirmDeleteTarget && (

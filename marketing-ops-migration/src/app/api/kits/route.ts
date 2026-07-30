@@ -10,7 +10,16 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
 
   const kits = await prisma.kit.findMany({
-    include: { items: { include: { stockItem: { select: { name: true, code: true, lastCost: true } } } } },
+    include: {
+      items: { include: { stockItem: { select: { name: true, code: true, lastCost: true } } } },
+      outputs: {
+        orderBy: { date: "desc" },
+        include: {
+          performedBy: { select: { name: true } },
+          movements: { take: 1, select: { area: { select: { id: true, name: true } } } },
+        },
+      },
+    },
     orderBy: { name: "asc" },
   });
   return NextResponse.json(kits);
@@ -50,7 +59,16 @@ export async function POST(request: NextRequest) {
         name,
         items: { create: items.map((i) => ({ stockItemId: i.stockItemId, quantity: i.quantity })) },
       },
-      include: { items: { include: { stockItem: { select: { name: true, code: true, lastCost: true } } } } },
+      include: {
+        items: { include: { stockItem: { select: { name: true, code: true, lastCost: true } } } },
+        outputs: {
+          orderBy: { date: "desc" },
+          include: {
+            performedBy: { select: { name: true } },
+            movements: { take: 1, select: { area: { select: { id: true, name: true } } } },
+          },
+        },
+      },
     });
 
     await logHistory({

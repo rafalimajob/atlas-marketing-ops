@@ -131,6 +131,12 @@ movimentações manuais (todos os três campos nulos) podem ser editadas/excluí
   `unitCost`/`totalCost` (mesma regra do `applyMovement()`), para que a saída de kit conte em
   Consumo por área junto com as retiradas manuais.
 - `KitOutput.kit` é `Restrict`: não dá pra apagar um kit que já teve saída registrada.
+- **Desfazer uma saída (somente ADMIN)**: `deleteKitOutput()` (`src/lib/movements.ts`) reverte uma
+  saída de kit por completo — devolve (`increment`) ao estoque a quantidade de cada `Movement`
+  gerada por aquele `KitOutput`, depois apaga essas `Movement`s e o próprio `KitOutput`, tudo numa
+  transação. Diferente de `updateMovement()`/`deleteMovement()`, não precisa validar saldo
+  negativo: reverter uma saída sempre soma estoque, nunca subtrai. Depois de desfeita, o kit volta
+  a poder ser excluído se não tiver outras saídas.
 
 ### Consumo por área (`Area`)
 

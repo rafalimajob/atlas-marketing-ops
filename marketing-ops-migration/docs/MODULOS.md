@@ -119,6 +119,14 @@ lote — ex.: "Kit Boas-vindas" = 1 camiseta + 1 ecobag + 1 bloco.
   contabilizada em Consumo por área (com snapshot de `unitCost`/`totalCost`, mesma regra usada
   pelas retiradas manuais).
 - Excluir um kit é bloqueado se ele já tiver alguma saída registrada.
+- **Desfazer uma saída de kit (somente ADMIN)**: cada cartão mostra um link "N saída(s)
+  registrada(s) — ver/desfazer" que abre o histórico de saídas do kit. Desfazer uma saída devolve
+  ao estoque a quantidade de cada item componente e remove tanto a `Movement` gerada (some de
+  Movimentações e de Consumo por área) quanto o `KitOutput` em si — não é uma edição de
+  quantidade, é a reversão completa do evento, pensada para o caso de erro de digitação ou kit
+  errado. Diferente de editar/excluir uma movimentação manual, não há risco de saldo negativo
+  (desfazer só devolve estoque), então a operação nunca é bloqueada por esse motivo. Depois de
+  desfazer a última saída de um kit, ele volta a poder ser excluído normalmente.
 
 ## Consumo por área (`/consumo-area`)
 
