@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { OrderModal } from "@/components/orders/order-modal";
 import { ORDER_STATUS_VALUES, ORDER_STATUS_LABEL, ORDER_STATUS_COLOR } from "@/lib/order-status";
 import { matchesSearch } from "@/lib/search";
+import { canWrite } from "@/lib/permissions";
 import type { OrderDTO } from "@/types/order";
 import type { OrderStatusValue } from "@/lib/order-status";
 import type { StockOptionDTO } from "@/types/movement";
@@ -46,6 +48,8 @@ const todayISO = () => new Date().toISOString().slice(0, 10);
 const fmtDate = (iso: string | null) => (iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—");
 
 export function OrderTable({ initialOrders, stock }: { initialOrders: OrderDTO[]; stock: StockOptionDTO[] }) {
+  const { data: session } = useSession();
+  const canCreate = Boolean(session?.user?.role && canWrite(session.user.role));
   const [orders, setOrders] = useState(initialOrders);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatusValue | "TODOS">("TODOS");
@@ -110,14 +114,16 @@ export function OrderTable({ initialOrders, stock }: { initialOrders: OrderDTO[]
         title="Pedidos de Compra"
         description="Ordens de compra vinculadas ao estoque"
         actions={
-          <Button
-            onClick={() => {
-              setEditing(undefined);
-              setShowModal(true);
-            }}
-          >
-            <Plus size={16} /> Novo pedido
-          </Button>
+          canCreate && (
+            <Button
+              onClick={() => {
+                setEditing(undefined);
+                setShowModal(true);
+              }}
+            >
+              <Plus size={16} /> Novo pedido
+            </Button>
+          )
         }
       />
 
@@ -159,7 +165,7 @@ export function OrderTable({ initialOrders, stock }: { initialOrders: OrderDTO[]
                   {col.label} {sortKey === col.key ? (sortDir === "asc" ? "↑" : "↓") : ""}
                 </th>
               ))}
-              <th className="px-3 py-2.5" />
+              {canCreate && <th className="px-3 py-2.5" />}
             </tr>
           </thead>
           <tbody>
@@ -185,39 +191,41 @@ export function OrderTable({ initialOrders, stock }: { initialOrders: OrderDTO[]
                     {fmtDate(o.expectedDate)}
                   </td>
                   <td className="px-3 py-2.5 text-zinc-500 dark:text-zinc-400">{fmtDate(o.deliveredDate)}</td>
-                  <td className="px-3 py-2.5">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditing(o);
-                          setShowModal(true);
-                        }}
-                        className="text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200"
-                        aria-label="Editar"
-                      >
-                        <Edit2 size={15} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setError(null);
-                          setConfirmDeleteTarget(o);
-                        }}
-                        disabled={deletingId === o.id}
-                        className="text-brand-crit hover:opacity-70 disabled:opacity-40"
-                        aria-label="Excluir"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  </td>
+                  {canCreate && (
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditing(o);
+                            setShowModal(true);
+                          }}
+                          className="text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200"
+                          aria-label="Editar"
+                        >
+                          <Edit2 size={15} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setError(null);
+                            setConfirmDeleteTarget(o);
+                          }}
+                          disabled={deletingId === o.id}
+                          className="text-brand-crit hover:opacity-70 disabled:opacity-40"
+                          aria-label="Excluir"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               );
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={COLUMNS.length + 1} className="py-2">
+                <td colSpan={canCreate ? COLUMNS.length + 1 : COLUMNS.length} className="py-2">
                   <EmptyState message="Nenhum pedido encontrado." />
                 </td>
               </tr>

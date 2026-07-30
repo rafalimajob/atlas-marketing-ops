@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { ShieldCheck, ShieldOff, UserCheck, UserX, Trash2 } from "lucide-react";
+import { UserCheck, UserX, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select } from "@/components/ui/select";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CHART_COLORS } from "@/lib/theme-colors";
+import { ROLE_LABEL, ROLE_VALUES, isSuperAdmin } from "@/lib/permissions";
 import type { UserDTO } from "@/types/user";
 import type { UserRole, UserStatus } from "@/generated/prisma/client";
 
@@ -24,14 +26,11 @@ const STATUS_COLOR: Record<UserStatus, string> = {
   DEACTIVATED: CHART_COLORS.crit,
 };
 
-const ROLE_LABEL: Record<UserRole, string> = {
-  ADMIN: "Administrador",
-  USER: "Usuário",
-};
-
 const ROLE_COLOR: Record<UserRole, string> = {
+  SUPER_ADMIN: CHART_COLORS.crit,
   ADMIN: CHART_COLORS.purple,
   USER: CHART_COLORS.slate,
+  VIEWER: CHART_COLORS.accent,
 };
 
 function fmtDate(iso: string) {
@@ -46,11 +45,24 @@ interface PendingAction {
   run: () => Promise<void>;
 }
 
-export function UserManagementView({ initialUsers, currentUserId }: { initialUsers: UserDTO[]; currentUserId: string }) {
+export function UserManagementView({
+  initialUsers,
+  currentUserId,
+  currentUserRole,
+}: {
+  initialUsers: UserDTO[];
+  currentUserId: string;
+  currentUserRole: UserRole;
+}) {
   const [users, setUsers] = useState(initialUsers);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+
+  // Só um Super Administrador pode conceder o papel de Super Administrador
+  // (ou mexer na conta de outro) — mesma regra do servidor em /api/users/[id].
+  const actorIsSuperAdmin = isSuperAdmin(currentUserRole);
+  const assignableRoles = actorIsSuperAdmin ? ROLE_VALUES : ROLE_VALUES.filter((r) => r !== "SUPER_ADMIN");
 
   async function patchUser(id: string, body: { role?: UserRole; status?: UserStatus }) {
     setError(null);
@@ -122,23 +134,14 @@ export function UserManagementView({ initialUsers, currentUserId }: { initialUse
     });
   }
 
-  function askPromote(u: UserDTO) {
+  function askChangeRole(u: UserDTO, nextRole: UserRole) {
+    if (nextRole === u.role) return;
     setPendingAction({
       user: u,
-      title: "Tornar administrador",
-      message: `Tornar "${u.name}" (${u.email}) administrador? Ele passará a ter acesso total ao sistema, incluindo a gestão de outros usuários.`,
-      confirmLabel: "Tornar admin",
-      run: () => patchUser(u.id, { role: "ADMIN" }),
-    });
-  }
-
-  function askDemote(u: UserDTO) {
-    setPendingAction({
-      user: u,
-      title: "Remover privilégio de administrador",
-      message: `Remover o privilégio de administrador de "${u.name}" (${u.email})? Ele passará a ter acesso de usuário comum.`,
-      confirmLabel: "Remover",
-      run: () => patchUser(u.id, { role: "USER" }),
+      title: "Alterar papel",
+      message: `Alterar o papel de "${u.name}" (${u.email}) de ${ROLE_LABEL[u.role]} para ${ROLE_LABEL[nextRole]}?`,
+      confirmLabel: "Alterar",
+      run: () => patchUser(u.id, { role: nextRole }),
     });
   }
 
@@ -178,6 +181,10 @@ export function UserManagementView({ initialUsers, currentUserId }: { initialUse
               {users.map((u) => {
                 const isSelf = u.id === currentUserId;
                 const busy = busyId === u.id;
+                // ADMIN não pode mexer na conta de um SUPER_ADMIN nem na
+                // própria — mesma regra aplicada em /api/users/[id].
+                const lockedForActor = isSuperAdmin(u.role) && !actorIsSuperAdmin;
+                const canManage = !isSelf && !lockedForActor;
                 return (
                   <tr
                     key={u.id}
@@ -188,7 +195,22 @@ export function UserManagementView({ initialUsers, currentUserId }: { initialUse
                     </td>
                     <td className="px-4 py-3 text-zinc-600 dark:text-zinc-300">{u.email}</td>
                     <td className="px-4 py-3">
-                      <Badge color={ROLE_COLOR[u.role]}>{ROLE_LABEL[u.role]}</Badge>
+                      {canManage ? (
+                        <Select
+                          value={u.role}
+                          disabled={busy}
+                          onChange={(e) => askChangeRole(u, e.target.value as UserRole)}
+                          className="h-8 w-48 px-2 py-1 text-xs"
+                        >
+                          {assignableRoles.map((r) => (
+                            <option key={r} value={r}>
+                              {ROLE_LABEL[r]}
+                            </option>
+                          ))}
+                        </Select>
+                      ) : (
+                        <Badge color={ROLE_COLOR[u.role]}>{ROLE_LABEL[u.role]}</Badge>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <Badge color={STATUS_COLOR[u.status]}>{STATUS_LABEL[u.status]}</Badge>
@@ -196,7 +218,7 @@ export function UserManagementView({ initialUsers, currentUserId }: { initialUse
                     <td className="px-4 py-3 text-zinc-600 dark:text-zinc-300">{u.mfaEnabled ? "Configurado" : "—"}</td>
                     <td className="px-4 py-3 text-zinc-600 dark:text-zinc-300">{fmtDate(u.createdAt)}</td>
                     <td className="px-4 py-3">
-                      {isSelf ? (
+                      {!canManage ? (
                         <span className="text-xs text-zinc-400">—</span>
                       ) : (
                         <div className="flex items-center gap-2">
@@ -230,27 +252,6 @@ export function UserManagementView({ initialUsers, currentUserId }: { initialUse
                               className="text-brand-ok hover:opacity-70 disabled:opacity-40"
                             >
                               <UserCheck size={16} />
-                            </button>
-                          )}
-                          {u.role === "USER" ? (
-                            <button
-                              type="button"
-                              title="Tornar administrador"
-                              disabled={busy}
-                              onClick={() => askPromote(u)}
-                              className="text-brand-purple hover:opacity-70 disabled:opacity-40"
-                            >
-                              <ShieldCheck size={16} />
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              title="Remover privilégio de administrador"
-                              disabled={busy}
-                              onClick={() => askDemote(u)}
-                              className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-                            >
-                              <ShieldOff size={16} />
                             </button>
                           )}
                           <button

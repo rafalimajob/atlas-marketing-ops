@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requireWriteAccess } from "@/lib/require-admin";
 import { logHistory, diffFields } from "@/lib/history";
 import { toErrorResponse } from "@/lib/api-errors";
 import { isMovementLocked } from "@/lib/movements";
@@ -19,8 +20,9 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteContext) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  const gate = await requireWriteAccess();
+  if ("error" in gate) return gate.error;
+  const { session } = gate;
 
   const { id } = await params;
   const existing = await prisma.stockItem.findUnique({ where: { id } });
@@ -70,8 +72,9 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: RouteContext) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  const gate = await requireWriteAccess();
+  if ("error" in gate) return gate.error;
+  const { session } = gate;
 
   const { id } = await params;
   const existing = await prisma.stockItem.findUnique({ where: { id } });

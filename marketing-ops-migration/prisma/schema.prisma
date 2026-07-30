@@ -80,9 +80,21 @@ enum UserStatus {
 // necessidade real de permissões distintas.
 // ----------------------------------------------------------------------------
 
+// Hierarquia: SUPER_ADMIN > ADMIN > USER > VIEWER.
+// - SUPER_ADMIN: único papel que pode conceder/revogar SUPER_ADMIN e mexer em
+//   contas de outros SUPER_ADMIN; por regra do produto deve haver sempre pelo
+//   menos um ativo (ver wouldRemoveLastActive* em /api/users/[id]).
+// - ADMIN: mesmas permissões de hoje — editar/excluir movimentações, kits,
+//   retiradas de área, e gerenciar usuários (exceto SUPER_ADMIN).
+// - USER: cria e opera o dia a dia (movimentações, pedidos, estoque, kits,
+//   retiradas), sem acesso a Usuários nem às ações só-admin.
+// - VIEWER: acesso somente leitura — vê todas as telas, não cria/edita/exclui
+//   nada em lugar nenhum.
 enum UserRole {
+  SUPER_ADMIN
   ADMIN
   USER
+  VIEWER
 }
 
 model User {

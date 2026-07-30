@@ -2,9 +2,13 @@
 
 Todas as rotas ficam sob `src/app/api/`. Convenções gerais:
 
-- Toda rota (exceto as de autenticação inicial) começa checando `getServerSession(authOptions)`
-  e devolve `401` se não houver sessão. Rotas de `usuarios/*` usam o helper
-  `requireAdmin()` (`src/lib/require-admin.ts`), que também barra com `403` quem não é `ADMIN`.
+- Toda rota (exceto as de autenticação inicial) começa checando sessão e devolve `401` se não
+  houver uma. Três gates em `src/lib/require-admin.ts` decidem quem além disso tem acesso —
+  `requireAdmin()` (`ADMIN` ou `SUPER_ADMIN`, usado por `usuarios/*` e pelas rotas de
+  editar/excluir movimentações, kits e retiradas de área), `requireSuperAdmin()` (só
+  `SUPER_ADMIN`) e `requireWriteAccess()` (qualquer papel exceto `VIEWER`, usado por todo
+  POST/PATCH/DELETE de negócio — estoque, movimentações, pedidos, kits, retiradas, categorias e
+  áreas). Ver `docs/AUTENTICACAO_E_SEGURANCA.md` para a tabela completa dos 4 papéis.
 - Erros do Prisma são traduzidos para mensagens amigáveis por `src/lib/api-errors.ts` /
   tratamento local de `P2002` (conflito de unicidade) e `P2003` (violação de chave estrangeira).
 - Rotas dinâmicas (`[id]`, `[type]` etc.) recebem `params` como **Promise** — padrão do Next.js
@@ -25,13 +29,13 @@ Todas as rotas ficam sob `src/app/api/`. Convenções gerais:
 
 Detalhe completo do fluxo: `docs/AUTENTICACAO_E_SEGURANCA.md`.
 
-## Usuários (admin)
+## Usuários (`requireAdmin()` — ADMIN ou SUPER_ADMIN)
 
 | Rota | Método | Descrição |
 |---|---|---|
 | `/api/users` | GET | Lista todos os usuários (id/nome/e-mail/papel/status/MFA/data) |
-| `/api/users/[id]` | PATCH | Altera `role` e/ou `status`. Bloqueia auto-modificação e remoção do último admin ativo |
-| `/api/users/[id]` | DELETE | Exclui de verdade se não houver histórico vinculado; senão devolve 409 sugerindo desativar |
+| `/api/users/[id]` | PATCH | Altera `role` e/ou `status`. Bloqueia auto-modificação, remoção do último `ADMIN`/`SUPER_ADMIN` ativo, e qualquer tentativa de um `ADMIN` (não `SUPER_ADMIN`) conceder `SUPER_ADMIN` ou mexer na conta de um `SUPER_ADMIN` existente (403) |
+| `/api/users/[id]` | DELETE | Exclui de verdade se não houver histórico vinculado; senão devolve 409 sugerindo desativar. Mesma proteção de `SUPER_ADMIN` do PATCH |
 
 ## Estoque
 
@@ -58,8 +62,8 @@ Detalhe completo do fluxo: `docs/AUTENTICACAO_E_SEGURANCA.md`.
 |---|---|---|
 | `/api/movements` | GET | Lista; `?project=` filtra por projeto (contém, case-insensitive) |
 | `/api/movements` | POST | Valida `direction`/`type`/`quantity`; chama `applyMovement()` |
-| `/api/movements/[id]` | PATCH | **Somente ADMIN** (`requireAdmin()`). Reverte o efeito antigo no saldo e aplica o novo numa transação; 409 se estiver vinculada a pedido/kit/área ou se o resultado deixar algum item negativo |
-| `/api/movements/[id]` | DELETE | **Somente ADMIN**. Reverte o efeito no saldo e remove o registro; 409 se estiver vinculada a pedido/kit/área ou se reverter deixar o item negativo |
+| `/api/movements/[id]` | PATCH | **Somente ADMIN ou superior** (`requireAdmin()`). Reverte o efeito antigo no saldo e aplica o novo numa transação; 409 se estiver vinculada a pedido/kit/área ou se o resultado deixar algum item negativo |
+| `/api/movements/[id]` | DELETE | **Somente ADMIN ou superior**. Reverte o efeito no saldo e remove o registro; 409 se estiver vinculada a pedido/kit/área ou se reverter deixar o item negativo |
 
 ## Consumo por área
 
@@ -71,8 +75,8 @@ Detalhe completo do fluxo: `docs/AUTENTICACAO_E_SEGURANCA.md`.
 | `/api/areas/[id]` | DELETE | Bloqueado (409) se houver retirada vinculada |
 | `/api/area-withdrawals` | GET | Lista todas as `Movement` com `areaId` preenchido |
 | `/api/area-withdrawals` | POST | Valida área/item/quantidade; força `direction: SAIDA`, `type: CONSUMO_INTERNO` no servidor; chama `applyMovement()` |
-| `/api/area-withdrawals/[id]` | PATCH | **Somente ADMIN**. Reverte o efeito antigo no saldo e aplica o novo; recalcula `unitCost`/`totalCost` só se o item mudar; 409 se a movimentação não tiver `areaId`, se tiver `kitOutputId` (gerada por saída de kit) ou se o resultado deixar algum item negativo |
-| `/api/area-withdrawals/[id]` | DELETE | **Somente ADMIN**. Reverte o efeito no saldo e remove o registro; 409 se a movimentação não tiver `areaId`, se tiver `kitOutputId` (gerada por saída de kit) ou se reverter deixar o item negativo |
+| `/api/area-withdrawals/[id]` | PATCH | **Somente ADMIN ou superior**. Reverte o efeito antigo no saldo e aplica o novo; recalcula `unitCost`/`totalCost` só se o item mudar; 409 se a movimentação não tiver `areaId`, se tiver `kitOutputId` (gerada por saída de kit) ou se o resultado deixar algum item negativo |
+| `/api/area-withdrawals/[id]` | DELETE | **Somente ADMIN ou superior**. Reverte o efeito no saldo e remove o registro; 409 se a movimentação não tiver `areaId`, se tiver `kitOutputId` (gerada por saída de kit) ou se reverter deixar o item negativo |
 
 ## Kits
 
@@ -80,11 +84,11 @@ Detalhe completo do fluxo: `docs/AUTENTICACAO_E_SEGURANCA.md`.
 |---|---|---|
 | `/api/kits` | GET | Lista kits com itens e nome/código do item, e `outputsCount` (só a contagem de saídas — não a lista, ver `/api/kits/[id]/outputs`) |
 | `/api/kits` | POST | Valida nome/itens (sem duplicata); cria `Kit` + `KitItem`s |
-| `/api/kits/[id]` | PATCH | **Somente ADMIN**. Valida nome/itens (sem duplicata); substitui a lista de `KitItem`s por completo. Não afeta `KitOutput`/`Movement` já registrados |
+| `/api/kits/[id]` | PATCH | **Somente ADMIN ou superior**. Valida nome/itens (sem duplicata); substitui a lista de `KitItem`s por completo. Não afeta `KitOutput`/`Movement` já registrados |
 | `/api/kits/[id]` | DELETE | Bloqueado (409) se o kit já tiver saída registrada |
 | `/api/kits/[id]/output` | POST | Exige `areaId`; valida saldo de todos os componentes, cria `KitOutput` + N `Movement` (`SAIDA`/`KIT`), cada uma com a área e um snapshot de `unitCost`/`totalCost` (mesma regra de `applyMovement`), contabilizando a saída em Consumo por área |
-| `/api/kits/[id]/outputs` | GET | **Somente ADMIN**. Histórico de saídas do kit, paginado (`skip`/`take`, padrão 20/página, máx. 50) e filtrável por período (`from`/`to`, `YYYY-MM-DD`). Retorna `{ items, total }` |
-| `/api/kit-outputs/[id]` | DELETE | **Somente ADMIN**. Desfaz a saída inteira: devolve ao estoque a quantidade de cada item componente e remove as `Movement`s geradas e o `KitOutput`. Nunca falha por saldo negativo (só devolve estoque) |
+| `/api/kits/[id]/outputs` | GET | **Somente ADMIN ou superior**. Histórico de saídas do kit, paginado (`skip`/`take`, padrão 20/página, máx. 50) e filtrável por período (`from`/`to`, `YYYY-MM-DD`). Retorna `{ items, total }` |
+| `/api/kit-outputs/[id]` | DELETE | **Somente ADMIN ou superior**. Desfaz a saída inteira: devolve ao estoque a quantidade de cada item componente e remove as `Movement`s geradas e o `KitOutput`. Nunca falha por saldo negativo (só devolve estoque) |
 
 ## Pedidos
 

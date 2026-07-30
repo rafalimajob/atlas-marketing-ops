@@ -10,8 +10,8 @@ export function StockCardGrid({
   deletingId,
 }: {
   items: StockItemDTO[];
-  onEdit: (item: StockItemDTO) => void;
-  onDelete: (item: StockItemDTO) => void;
+  onEdit?: (item: StockItemDTO) => void;
+  onDelete?: (item: StockItemDTO) => void;
   deletingId: string | null;
 }) {
   return (
@@ -25,25 +25,31 @@ export function StockCardGrid({
               </div>
               <div className="truncate font-medium text-zinc-900 dark:text-zinc-50">{s.name}</div>
             </div>
-            <div className="flex shrink-0 gap-1">
-              <button
-                type="button"
-                onClick={() => onEdit(s)}
-                className="text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200"
-                aria-label="Editar"
-              >
-                <Edit2 size={14} />
-              </button>
-              <button
-                type="button"
-                onClick={() => onDelete(s)}
-                disabled={deletingId === s.id}
-                className="text-brand-crit hover:opacity-70 disabled:opacity-40"
-                aria-label="Excluir"
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
+            {(onEdit || onDelete) && (
+              <div className="flex shrink-0 gap-1">
+                {onEdit && (
+                  <button
+                    type="button"
+                    onClick={() => onEdit(s)}
+                    className="text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200"
+                    aria-label="Editar"
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                )}
+                {onDelete && (
+                  <button
+                    type="button"
+                    onClick={() => onDelete(s)}
+                    disabled={deletingId === s.id}
+                    className="text-brand-crit hover:opacity-70 disabled:opacity-40"
+                    aria-label="Excluir"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="mt-3 flex items-end justify-between">

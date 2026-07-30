@@ -169,13 +169,14 @@ Controla o consumo físico **e financeiro** de materiais retirados pelas áreas 
   editar/excluir: elas foram geradas pelo módulo de Kits (`kitOutputId` setado) e mexer nelas aqui
   desincronizaria o `KitOutput` de origem.
 
-## Usuários (`/usuarios`, somente ADMIN)
+## Usuários (`/usuarios`, somente ADMIN/SUPER_ADMIN)
 
 Ver `docs/AUTENTICACAO_E_SEGURANCA.md` para o detalhamento completo do fluxo de aprovação,
 papéis e proteções. Resumo funcional: aprovar cadastros pendentes, desativar/reativar acesso,
-promover/remover privilégio de administrador, excluir (quando possível). Toda ação passa por uma
-confirmação (pop-up) antes de ser executada, e toda ação fica registrada no histórico de
-auditoria.
+trocar o papel do usuário (`<Select>` com as 4 opções — Super Administrador, Administrador,
+Usuário, Visualizador; só um Super Administrador pode conceder Super Administrador ou mexer na
+conta de outro), excluir (quando possível). Toda ação passa por uma confirmação (pop-up) antes
+de ser executada, e toda ação fica registrada no histórico de auditoria.
 
 ## Relatórios (`/relatorios`)
 

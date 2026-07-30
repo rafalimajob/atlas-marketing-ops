@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { KitModal } from "@/components/kits/kit-modal";
 import { KitOutputModal } from "@/components/kits/kit-output-modal";
 import { KitOutputHistoryModal } from "@/components/kits/kit-output-history-modal";
+import { isAdminRole, canWrite } from "@/lib/permissions";
 import type { KitDTO } from "@/types/kit";
 import type { StockOptionDTO } from "@/types/movement";
 import type { AreaDTO } from "@/types/area";
@@ -41,7 +42,8 @@ export function KitGrid({
   areas: AreaDTO[];
 }) {
   const { data: session } = useSession();
-  const isAdmin = session?.user?.role === "ADMIN";
+  const isAdmin = Boolean(session?.user?.role && isAdminRole(session.user.role));
+  const canCreate = Boolean(session?.user?.role && canWrite(session.user.role));
   const [kits, setKits] = useState(initialKits);
   const [editing, setEditing] = useState<KitDTO | undefined>(undefined);
   const [showModal, setShowModal] = useState(false);
@@ -81,14 +83,16 @@ export function KitGrid({
         title="Kits"
         description="Conjuntos de itens para saída rápida em eventos e campanhas"
         actions={
-          <Button
-            onClick={() => {
-              setEditing(undefined);
-              setShowModal(true);
-            }}
-          >
-            <Plus size={16} /> Novo kit
-          </Button>
+          canCreate && (
+            <Button
+              onClick={() => {
+                setEditing(undefined);
+                setShowModal(true);
+              }}
+            >
+              <Plus size={16} /> Novo kit
+            </Button>
+          )
         }
       />
 
@@ -156,9 +160,11 @@ export function KitGrid({
                 <History size={12} /> {k.outputsCount} saída(s) registrada(s) — ver/desfazer
               </button>
             )}
-            <Button variant="secondary" className="w-full justify-center" onClick={() => setOutputKit(k)}>
-              Registrar saída de kit
-            </Button>
+            {canCreate && (
+              <Button variant="secondary" className="w-full justify-center" onClick={() => setOutputKit(k)}>
+                Registrar saída de kit
+              </Button>
+            )}
           </Card>
           );
         })}

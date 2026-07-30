@@ -30,9 +30,11 @@ Area ──< Movement (retiradas de "Consumo por área")
 
 ### Autenticação (`User`, `VerificationToken`)
 
-- `User.role` (`ADMIN` | `USER`) e `User.status` (`PENDING` | `ACTIVE` | `DEACTIVATED`) juntos
-  controlam acesso. Um cadastro novo nasce `role: USER`, `status: PENDING` — só entra depois de
-  confirmar e-mail **e** ser aprovado por um admin (ver `docs/AUTENTICACAO_E_SEGURANCA.md`).
+- `User.role` (`SUPER_ADMIN` | `ADMIN` | `USER` | `VIEWER`) e `User.status` (`PENDING` | `ACTIVE` |
+  `DEACTIVATED`) juntos controlam acesso — ver `src/lib/permissions.ts` para rótulos/hierarquia e
+  `docs/AUTENTICACAO_E_SEGURANCA.md` para o detalhamento completo dos 4 papéis. Um cadastro novo
+  nasce `role: USER`, `status: PENDING` — só entra depois de confirmar e-mail **e** ser aprovado
+  por um admin.
 - `mfaEnabled` / `mfaSecret` (criptografado) / `mfaBackupCodes` (hasheados): estado do MFA
   obrigatório. Nenhum usuário loga sem MFA configurado — é forçado no primeiro login.
 - `VerificationToken` é genérico (`purpose: string`) e serve tanto para confirmação de e-mail
@@ -177,6 +179,7 @@ Ficam em `prisma/migrations/`, uma pasta por migração (nome com timestamp + de
 | `20260711162554_add_area_consumption` | Módulo Consumo por área (`Area`, campos `areaId`/`unitCost`/`totalCost` em `Movement`) |
 | `20260713163000_add_user_status` | `UserStatus` (aprovação/desativação de usuários) — contas existentes foram migradas para `ACTIVE` automaticamente, só cadastros novos nascem `PENDING` |
 | `20260714200000_add_category_table` | Tabela `Category` (gerenciamento de categorias de estoque) — populada automaticamente com os valores distintos já existentes em `stock_items.category` |
+| `20260730170911_add_super_admin_and_viewer_roles` | `UserRole` ganha `SUPER_ADMIN` e `VIEWER` (`ADMIN`/`USER` existentes preservados) — contas existentes não mudam de papel automaticamente |
 
 Para aplicar em um banco novo: `npx prisma migrate deploy` (produção) ou
 `npx prisma migrate dev` (desenvolvimento, também sincroniza o schema se houver diff). Depois,

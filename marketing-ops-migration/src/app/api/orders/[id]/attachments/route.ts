@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requireWriteAccess } from "@/lib/require-admin";
 import { logHistory } from "@/lib/history";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -14,8 +13,9 @@ const MAX_SIZE_BYTES = 15 * 1024 * 1024; // 15MB — upload local de dev, ajusta
 // Upload local em /public/uploads (dev only, ver README). Em produção, trocar por
 // Vercel Blob/S3 preenchendo BLOB_READ_WRITE_TOKEN e adaptando esta rota.
 export async function POST(request: NextRequest, { params }: RouteContext) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  const gate = await requireWriteAccess();
+  if ("error" in gate) return gate.error;
+  const { session } = gate;
 
   const { id: orderId } = await params;
   const order = await prisma.order.findUnique({ where: { id: orderId } });

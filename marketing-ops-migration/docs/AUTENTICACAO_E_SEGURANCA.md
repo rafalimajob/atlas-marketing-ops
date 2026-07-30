@@ -120,21 +120,46 @@ confiança, que é de propósito intencionalmente longo):
 
 ## Controle de acesso (papéis)
 
-Dois papéis: `ADMIN` e `USER`. A única checagem de papel do sistema inteiro está centralizada em
-`src/lib/require-admin.ts` (`requireAdmin()`), usada pelas rotas `api/users/*` e pela página
-`/usuarios` (que redireciona para `/dashboard` se `session.user.role !== "ADMIN"`). Não há
-middleware global (`src/middleware.ts` não existe) — cada rota/página protegida chama
-`getServerSession` e decide por conta própria; esse é o padrão a seguir se novas áreas
-admin-only forem criadas.
+Quatro papéis, em ordem decrescente de privilégio (`src/lib/permissions.ts` é a única fonte de
+verdade — rótulos, hierarquia e a regra de escrita):
 
-### O que um `ADMIN` pode fazer em `/usuarios`
+| Papel | Rótulo | O que pode fazer |
+|---|---|---|
+| `SUPER_ADMIN` | Super Administrador | Tudo que um Administrador pode, **mais** conceder/revogar o papel de Super Administrador e alterar a conta de outro Super Administrador. Por regra do produto, deve existir sempre pelo menos um ativo. |
+| `ADMIN` | Administrador | Edita/exclui movimentações, kits e retiradas de Consumo por área; acessa `/usuarios` para aprovar, (des)ativar, trocar papel (exceto conceder `SUPER_ADMIN`) e excluir contas — mas não pode mexer na conta de um Super Administrador. |
+| `USER` | Usuário | Opera o dia a dia: cria/edita pedidos, movimentações, itens de estoque, kits e retiradas. Sem acesso a `/usuarios`. |
+| `VIEWER` | Visualizador | Somente leitura em todas as telas — todo POST/PATCH/DELETE de negócio é rejeitado (403) pelo servidor, e os botões de criar/editar/excluir nem aparecem na interface. |
 
-- Aprovar (`PENDING → ACTIVE`), desativar/reativar, promover/remover admin, e "excluir".
+Três gates em `src/lib/require-admin.ts`, cada rota escolhe o que precisa:
+- **`requireAdmin()`** — `ADMIN` ou `SUPER_ADMIN`. Usado por `api/users/*` e pelas rotas de
+  editar/excluir movimentações, kits (edição) e retiradas de área.
+- **`requireSuperAdmin()`** — só `SUPER_ADMIN`. Não é usado por nenhuma rota de negócio hoje;
+  existe para o dia em que uma ação exigir exclusivamente o topo da hierarquia (a proteção de
+  conceder/editar `SUPER_ADMIN` já vive inline em `api/users/[id]/route.ts`, ver abaixo).
+- **`requireWriteAccess()`** — qualquer papel exceto `VIEWER`. Usado por todo POST/PATCH/DELETE
+  de estoque, movimentações, pedidos, kits, retiradas de área, categorias e áreas.
+
+Não há middleware global (`src/middleware.ts` não existe) — cada rota/página protegida chama um
+desses gates (ou `getServerSession` direto, nas rotas só-leitura) e decide por conta própria;
+esse é o padrão a seguir se novas áreas restritas forem criadas.
+
+### O que um `ADMIN`/`SUPER_ADMIN` pode fazer em `/usuarios`
+
+- Aprovar (`PENDING → ACTIVE`), desativar/reativar, trocar o papel (`<Select>` por linha) e
+  excluir.
 - **Proteções embutidas** (em `api/users/[id]/route.ts`):
   - Ninguém pode alterar a própria conta por essa tela (evita se autodesativar/rebaixar por
-    engano).
-  - O sistema nunca deixa remover o último `ADMIN` ativo — seja por rebaixamento, desativação
-    ou exclusão (`isLastActiveAdmin()`/`wouldRemoveLastActiveAdmin()`).
+    engano) — inclusive o próprio Super Administrador.
+  - Só um `SUPER_ADMIN` pode mexer na conta de outro `SUPER_ADMIN` (editar papel/status ou
+    excluir) ou conceder o papel de `SUPER_ADMIN` a alguém — um `ADMIN` tentando qualquer uma
+    dessas ações recebe 403. Na interface, a linha de um Super Administrador some as ações
+    (mostra só o badge) para quem não é Super Administrador.
+  - O sistema nunca deixa remover o último `ADMIN`/`SUPER_ADMIN` ativo — seja por rebaixamento
+    para `USER`/`VIEWER`, desativação ou exclusão (`isLastActiveAdmin()`/
+    `wouldRemoveLastActiveAdmin()`, que contam `role IN (ADMIN, SUPER_ADMIN)` juntos). Como
+    ninguém pode alterar a própria conta, isso também protege o único Super Administrador na
+    prática: só outro Super Administrador poderia mexer nele, e se só existir um, não há quem o
+    faça.
 
 ### Por que não existe exclusão de verdade na prática
 
@@ -144,18 +169,20 @@ histórico falha com um erro de integridade referencial (Prisma `P2003`), e a ro
 mensagem orientando a desativar em vez de excluir. Só é possível apagar de verdade um usuário que
 nunca tenha criado/alterado nada.
 
-## Bootstrap do primeiro administrador
+## Bootstrap do primeiro administrador (ou do Super Administrador)
 
 Não existe fluxo de auto-promoção a admin pela UI (faria sentido seria um risco de segurança
-óbvio). Para colocar o primeiro `ADMIN` funcional em um banco novo, depois do cadastro normal
-pela tela de registro (ou do seed, ver `docs/BANCO_DE_DADOS.md`), promova manualmente no banco:
+óbvio) — e conceder `SUPER_ADMIN` também não é possível pela UI a partir de uma conta que já não
+seja `SUPER_ADMIN` (ver acima). Para colocar o primeiro `ADMIN`/`SUPER_ADMIN` funcional em um
+banco novo, depois do cadastro normal pela tela de registro (ou do seed, ver
+`docs/BANCO_DE_DADOS.md`), promova manualmente no banco:
 
 ```sql
-UPDATE users SET role = 'ADMIN', status = 'ACTIVE' WHERE email = 'seu-email@dominio.com';
+UPDATE users SET role = 'SUPER_ADMIN', status = 'ACTIVE' WHERE email = 'seu-email@dominio.com';
 ```
 
-A partir daí, esse usuário consegue entrar em `/usuarios` e aprovar/gerenciar os demais pela
-interface normalmente.
+A partir daí, esse usuário consegue entrar em `/usuarios` e aprovar/gerenciar os demais (incluindo
+conceder `ADMIN`/`SUPER_ADMIN` a outras contas) pela interface normalmente.
 
 ## Variáveis de ambiente relevantes para segurança
 

@@ -17,6 +17,7 @@ import { ErrorBanner } from "@/components/ui/error-banner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { matchesSearch } from "@/lib/search";
 import { CHART_COLORS } from "@/lib/theme-colors";
+import { isAdminRole, canWrite } from "@/lib/permissions";
 import type { AreaDTO } from "@/types/area";
 import type { MovementDTO, StockOptionDTO } from "@/types/movement";
 
@@ -39,7 +40,8 @@ export function AreaConsumptionView({
   stock: StockOptionDTO[];
 }) {
   const { data: session } = useSession();
-  const isAdmin = session?.user?.role === "ADMIN";
+  const isAdmin = Boolean(session?.user?.role && isAdminRole(session.user.role));
+  const canCreate = Boolean(session?.user?.role && canWrite(session.user.role));
   const [withdrawals, setWithdrawals] = useState(initialWithdrawals);
   const [areaList, setAreaList] = useState(areas);
   const [search, setSearch] = useState("");
@@ -121,6 +123,7 @@ export function AreaConsumptionView({
         title="Consumo por área"
         description="Retiradas de materiais realizadas pelas áreas da instituição"
         actions={
+          canCreate && (
           <>
             <Button variant="secondary" onClick={() => setShowManagerModal(true)}>
               <Settings2 size={16} /> Gerenciar áreas
@@ -134,6 +137,7 @@ export function AreaConsumptionView({
               <Plus size={16} /> Nova retirada
             </Button>
           </>
+          )
         }
       />
 

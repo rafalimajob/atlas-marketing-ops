@@ -2,28 +2,29 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma, type UserRole, type UserStatus } from "@/generated/prisma/client";
 import { requireAdmin } from "@/lib/require-admin";
+import { isAdminRole, isSuperAdmin } from "@/lib/permissions";
 import { logHistory, diffFields } from "@/lib/history";
 import { toErrorResponse } from "@/lib/api-errors";
 import type { UserDTO } from "@/types/user";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-const ROLE_VALUES: UserRole[] = ["ADMIN", "USER"];
+const ROLE_VALUES: UserRole[] = ["SUPER_ADMIN", "ADMIN", "USER", "VIEWER"];
 const STATUS_VALUES: UserStatus[] = ["PENDING", "ACTIVE", "DEACTIVATED"];
 
-/** Impede remover o último administrador ativo do sistema (por demoção,
+/** Impede remover o último ADMIN/SUPER_ADMIN ativo do sistema (por demoção,
  * desativação ou exclusão) — sem isso seria possível trancar o sistema
- * inteiro sem nenhum admin capaz de reverter. */
+ * inteiro sem ninguém capaz de reverter. */
 async function isLastActiveAdmin(existing: { id: string; role: UserRole; status: UserStatus }) {
-  if (existing.role !== "ADMIN" || existing.status !== "ACTIVE") return false;
+  if (!isAdminRole(existing.role) || existing.status !== "ACTIVE") return false;
   const otherActiveAdmins = await prisma.user.count({
-    where: { role: "ADMIN", status: "ACTIVE", id: { not: existing.id } },
+    where: { role: { in: ["ADMIN", "SUPER_ADMIN"] }, status: "ACTIVE", id: { not: existing.id } },
   });
   return otherActiveAdmins === 0;
 }
 
 async function wouldRemoveLastActiveAdmin(existing: { id: string; role: UserRole; status: UserStatus }, nextRole: UserRole, nextStatus: UserStatus) {
-  const staysActiveAdmin = nextRole === "ADMIN" && nextStatus === "ACTIVE";
+  const staysActiveAdmin = isAdminRole(nextRole) && nextStatus === "ACTIVE";
   if (staysActiveAdmin) return false;
   return isLastActiveAdmin(existing);
 }
@@ -41,6 +42,15 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   const existing = await prisma.user.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
 
+  // Só um Super Administrador pode mexer na conta de outro Super
+  // Administrador, ou conceder o papel de Super Administrador a alguém.
+  if (isSuperAdmin(existing.role) && !isSuperAdmin(session.user.role)) {
+    return NextResponse.json(
+      { error: "Apenas o Super Administrador pode alterar a conta de outro Super Administrador." },
+      { status: 403 }
+    );
+  }
+
   const body = await request.json().catch(() => null);
   const role = body?.role;
   const status = body?.status;
@@ -53,6 +63,13 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
 
   const nextRole: UserRole = role ?? existing.role;
   const nextStatus: UserStatus = status ?? existing.status;
+
+  if (nextRole === "SUPER_ADMIN" && !isSuperAdmin(session.user.role)) {
+    return NextResponse.json(
+      { error: "Apenas o Super Administrador pode conceder o papel de Super Administrador." },
+      { status: 403 }
+    );
+  }
 
   if (await wouldRemoveLastActiveAdmin(existing, nextRole, nextStatus)) {
     return NextResponse.json({ error: "É necessário manter ao menos um administrador ativo." }, { status: 409 });
@@ -96,6 +113,13 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
 
   const existing = await prisma.user.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
+
+  if (isSuperAdmin(existing.role) && !isSuperAdmin(session.user.role)) {
+    return NextResponse.json(
+      { error: "Apenas o Super Administrador pode excluir a conta de outro Super Administrador." },
+      { status: 403 }
+    );
+  }
 
   if (await isLastActiveAdmin(existing)) {
     return NextResponse.json({ error: "É necessário manter ao menos um administrador ativo." }, { status: 409 });

@@ -14,6 +14,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { MovementModal } from "@/components/movements/movement-modal";
 import { MOVEMENT_TYPE_LABEL } from "@/lib/movement-types";
 import { matchesSearch } from "@/lib/search";
+import { isAdminRole, canWrite } from "@/lib/permissions";
 import type { MovementDTO, StockOptionDTO } from "@/types/movement";
 
 const fmtDateTime = (iso: string) =>
@@ -31,7 +32,8 @@ export function MovementTable({
   stock: StockOptionDTO[];
 }) {
   const { data: session } = useSession();
-  const isAdmin = session?.user?.role === "ADMIN";
+  const isAdmin = Boolean(session?.user?.role && isAdminRole(session.user.role));
+  const canCreate = Boolean(session?.user?.role && canWrite(session.user.role));
   const [movements, setMovements] = useState(initialMovements);
   const [search, setSearch] = useState("");
   const [range, setRange] = useState(ALL_TIME_RANGE);
@@ -88,14 +90,16 @@ export function MovementTable({
         title="Movimentações"
         description="Histórico de entradas e saídas de estoque"
         actions={
-          <Button
-            onClick={() => {
-              setEditing(undefined);
-              setShowModal(true);
-            }}
-          >
-            <Plus size={16} /> Nova movimentação
-          </Button>
+          canCreate && (
+            <Button
+              onClick={() => {
+                setEditing(undefined);
+                setShowModal(true);
+              }}
+            >
+              <Plus size={16} /> Nova movimentação
+            </Button>
+          )
         }
       />
 

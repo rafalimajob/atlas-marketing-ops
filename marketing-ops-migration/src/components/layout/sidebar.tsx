@@ -17,6 +17,7 @@ import {
   ChevronsRight,
   X,
 } from "lucide-react";
+import { isAdminRole } from "@/lib/permissions";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -40,7 +41,7 @@ export function Sidebar({
   const pathname = usePathname();
   const { data: session } = useSession();
   const [collapsed, setCollapsed] = useState(false);
-  const navItems = session?.user?.role === "ADMIN" ? [...NAV_ITEMS, ADMIN_NAV_ITEM] : NAV_ITEMS;
+  const navItems = session?.user?.role && isAdminRole(session.user.role) ? [...NAV_ITEMS, ADMIN_NAV_ITEM] : NAV_ITEMS;
 
   return (
     <aside

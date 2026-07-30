@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 import { Plus, Settings2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { CategoryManagerModal } from "@/components/stock/category-manager-modal"
 import { StockLevelFilter } from "@/components/stock/stock-level-filter";
 import { matchesSearch } from "@/lib/search";
 import { getStockLevel, type StockLevel } from "@/lib/stock-level";
+import { canWrite } from "@/lib/permissions";
 import type { StockItemDTO } from "@/types/stock";
 import type { CategoryDTO } from "@/types/category";
 
@@ -27,6 +29,8 @@ export function StockGrid({
   initialItems: StockItemDTO[];
   initialCategories: CategoryDTO[];
 }) {
+  const { data: session } = useSession();
+  const canCreate = Boolean(session?.user?.role && canWrite(session.user.role));
   const [items, setItems] = useState(initialItems);
   const [categories, setCategories] = useState(initialCategories);
   const [search, setSearch] = useState("");
@@ -118,6 +122,7 @@ export function StockGrid({
         title="Estoque"
         description="Itens cadastrados, saldos e localização física"
         actions={
+          canCreate && (
           <>
             <Button variant="secondary" onClick={() => setShowCategoryManager(true)}>
               <Settings2 size={16} /> Gerenciar categorias
@@ -131,6 +136,7 @@ export function StockGrid({
               <Plus size={16} /> Novo item
             </Button>
           </>
+          )
         }
       />
 
@@ -149,9 +155,19 @@ export function StockGrid({
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
 
       {view === "grid" ? (
-        <StockCardGrid items={filtered} onEdit={openEdit} onDelete={requestDelete} deletingId={deletingId} />
+        <StockCardGrid
+          items={filtered}
+          onEdit={canCreate ? openEdit : undefined}
+          onDelete={canCreate ? requestDelete : undefined}
+          deletingId={deletingId}
+        />
       ) : (
-        <StockListView items={filtered} onEdit={openEdit} onDelete={requestDelete} deletingId={deletingId} />
+        <StockListView
+          items={filtered}
+          onEdit={canCreate ? openEdit : undefined}
+          onDelete={canCreate ? requestDelete : undefined}
+          deletingId={deletingId}
+        />
       )}
 
       {showModal && (
