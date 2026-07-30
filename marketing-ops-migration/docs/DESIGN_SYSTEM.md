@@ -7,7 +7,7 @@ v4 com configuração *CSS-first* (não existe `tailwind.config.js` — tudo viv
 ## Identidade de marca
 
 Paleta oficial da instituição (referência visual em `assets/cores.png`, na raiz do repositório
-`sis-brindes/`, um nível acima deste projeto). Cor principal: **verde institucional**.
+`atlas-marketing-ops/`, um nível acima deste projeto). Cor principal: **verde institucional**.
 
 | Token | Uso | Claro | Escuro |
 |---|---|---|---|
