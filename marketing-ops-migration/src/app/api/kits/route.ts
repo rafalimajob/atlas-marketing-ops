@@ -19,7 +19,10 @@ export async function GET() {
     },
     orderBy: { name: "asc" },
   });
-  return NextResponse.json(kits);
+  // Mapeado explicitamente para `outputsCount` (o formato que o KitDTO do
+  // cliente espera) em vez de devolver `_count.outputs` cru — o mesmo formato
+  // usado pelo carregamento inicial da página em `kits/page.tsx`.
+  return NextResponse.json(kits.map((k) => ({ id: k.id, name: k.name, items: k.items, outputsCount: k._count.outputs })));
 }
 
 interface KitItemInput {
@@ -70,7 +73,10 @@ export async function POST(request: NextRequest) {
       userId: session.user.id,
     });
 
-    return NextResponse.json(kit, { status: 201 });
+    return NextResponse.json(
+      { id: kit.id, name: kit.name, items: kit.items, outputsCount: kit._count.outputs },
+      { status: 201 }
+    );
   } catch (err) {
     const { message, status } = toErrorResponse(err);
     return NextResponse.json({ error: message }, { status });

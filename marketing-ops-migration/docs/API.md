@@ -78,7 +78,7 @@ Detalhe completo do fluxo: `docs/AUTENTICACAO_E_SEGURANCA.md`.
 
 | Rota | Método | Descrição |
 |---|---|---|
-| `/api/kits` | GET | Lista kits com itens e nome/código do item, e `_count.outputs` (só a contagem de saídas — não a lista, ver `/api/kits/[id]/outputs`) |
+| `/api/kits` | GET | Lista kits com itens e nome/código do item, e `outputsCount` (só a contagem de saídas — não a lista, ver `/api/kits/[id]/outputs`) |
 | `/api/kits` | POST | Valida nome/itens (sem duplicata); cria `Kit` + `KitItem`s |
 | `/api/kits/[id]` | PATCH | **Somente ADMIN**. Valida nome/itens (sem duplicata); substitui a lista de `KitItem`s por completo. Não afeta `KitOutput`/`Movement` já registrados |
 | `/api/kits/[id]` | DELETE | Bloqueado (409) se o kit já tiver saída registrada |

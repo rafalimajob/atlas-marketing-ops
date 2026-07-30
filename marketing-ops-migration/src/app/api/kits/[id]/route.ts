@@ -68,7 +68,9 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       userId: session.user.id,
     });
 
-    return NextResponse.json(kit);
+    // Mapeado explicitamente para `outputsCount` (formato do KitDTO), em vez de
+    // devolver `_count.outputs` cru — mesma regra de GET/POST em /api/kits.
+    return NextResponse.json({ id: kit.id, name: kit.name, items: kit.items, outputsCount: kit._count.outputs });
   } catch (err) {
     const { message, status } = toErrorResponse(err);
     return NextResponse.json({ error: message }, { status });
