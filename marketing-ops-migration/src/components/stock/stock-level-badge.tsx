@@ -1,8 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { CHART_COLORS } from "@/lib/theme-colors";
+import { getStockLevel, STOCK_LEVEL_LABEL } from "@/lib/stock-level";
 
 export function StockLevelBadge({ quantity, minStock }: { quantity: number; minStock: number }) {
-  const level = quantity < minStock ? "crit" : quantity < minStock * 1.3 ? "warn" : "ok";
-  const label = { crit: "Abaixo do mínimo", warn: "Próximo do mínimo", ok: "Estoque adequado" }[level];
-  return <Badge color={CHART_COLORS[level]}>{label}</Badge>;
+  const level = getStockLevel(quantity, minStock);
+  return <Badge color={CHART_COLORS[level]}>{STOCK_LEVEL_LABEL[level]}</Badge>;
 }
