@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ErrorBanner } from "@/components/ui/error-banner";
@@ -12,9 +13,21 @@ import { KitModal } from "@/components/kits/kit-modal";
 import { KitOutputModal } from "@/components/kits/kit-output-modal";
 import type { KitDTO } from "@/types/kit";
 import type { StockOptionDTO } from "@/types/movement";
+import type { AreaDTO } from "@/types/area";
 
-export function KitGrid({ initialKits, stock }: { initialKits: KitDTO[]; stock: StockOptionDTO[] }) {
+export function KitGrid({
+  initialKits,
+  stock,
+  areas,
+}: {
+  initialKits: KitDTO[];
+  stock: StockOptionDTO[];
+  areas: AreaDTO[];
+}) {
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "ADMIN";
   const [kits, setKits] = useState(initialKits);
+  const [editing, setEditing] = useState<KitDTO | undefined>(undefined);
   const [showModal, setShowModal] = useState(false);
   const [outputKit, setOutputKit] = useState<KitDTO | undefined>(undefined);
   const [confirmDeleteTarget, setConfirmDeleteTarget] = useState<KitDTO | null>(null);
@@ -50,7 +63,12 @@ export function KitGrid({ initialKits, stock }: { initialKits: KitDTO[]; stock: 
         title="Kits"
         description="Conjuntos de itens para saída rápida em eventos e campanhas"
         actions={
-          <Button onClick={() => setShowModal(true)}>
+          <Button
+            onClick={() => {
+              setEditing(undefined);
+              setShowModal(true);
+            }}
+          >
             <Plus size={16} /> Novo kit
           </Button>
         }
@@ -63,18 +81,33 @@ export function KitGrid({ initialKits, stock }: { initialKits: KitDTO[]; stock: 
           <Card key={k.id} className="flex flex-col transition-shadow hover:shadow-md">
             <div className="mb-2 flex items-start justify-between gap-2">
               <div className="font-medium text-zinc-900 dark:text-zinc-50">{k.name}</div>
-              <button
-                type="button"
-                onClick={() => {
-                  setError(null);
-                  setConfirmDeleteTarget(k);
-                }}
-                disabled={deletingId === k.id}
-                className="shrink-0 text-brand-crit hover:opacity-70 disabled:opacity-40"
-                aria-label="Excluir kit"
-              >
-                <Trash2 size={14} />
-              </button>
+              {isAdmin && (
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditing(k);
+                      setShowModal(true);
+                    }}
+                    className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                    aria-label="Editar kit"
+                  >
+                    <Pencil size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError(null);
+                      setConfirmDeleteTarget(k);
+                    }}
+                    disabled={deletingId === k.id}
+                    className="text-brand-crit hover:opacity-70 disabled:opacity-40"
+                    aria-label="Excluir kit"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              )}
             </div>
             <ul className="mb-4 flex-1 space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
               {k.items.map((ci) => (
@@ -95,8 +128,20 @@ export function KitGrid({ initialKits, stock }: { initialKits: KitDTO[]; stock: 
         )}
       </div>
 
-      {showModal && <KitModal stock={stock} onClose={() => setShowModal(false)} onSaved={refresh} />}
-      {outputKit && <KitOutputModal kit={outputKit} onClose={() => setOutputKit(undefined)} onSaved={refresh} />}
+      {showModal && (
+        <KitModal
+          kit={editing}
+          stock={stock}
+          onClose={() => {
+            setShowModal(false);
+            setEditing(undefined);
+          }}
+          onSaved={refresh}
+        />
+      )}
+      {outputKit && (
+        <KitOutputModal kit={outputKit} areas={areas} onClose={() => setOutputKit(undefined)} onSaved={refresh} />
+      )}
 
       {confirmDeleteTarget && (
         <ConfirmDialog

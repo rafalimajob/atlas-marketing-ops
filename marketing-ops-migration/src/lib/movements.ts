@@ -219,6 +219,7 @@ export async function updateAreaWithdrawal(id: string, input: UpdateAreaWithdraw
 interface RegisterKitOutputInput {
   kitId: string;
   quantity: number; // número de kits retirados
+  areaId: string; // área responsável pela retirada, para contabilizar em Consumo por área
   project?: string | null;
   notes?: string | null;
   performedById: string;
@@ -226,7 +227,10 @@ interface RegisterKitOutputInput {
 
 /**
  * Cria um KitOutput e uma Movement (SAIDA/KIT) por item componente do kit,
- * decrementando cada StockItem — tudo numa única transação.
+ * decrementando cada StockItem — tudo numa única transação. Cada movimentação
+ * carrega a área da retirada e um snapshot de `unitCost`/`totalCost` (mesma
+ * regra de `applyMovement`), para que a saída de kit também apareça e some
+ * corretamente em Consumo por área.
  */
 export async function registerKitOutput(input: RegisterKitOutputInput) {
   return prisma.$transaction(async (tx) => {
@@ -260,6 +264,8 @@ export async function registerKitOutput(input: RegisterKitOutputInput) {
         where: { id: line.stockItemId },
         data: { quantity: { decrement: needed }, updatedById: input.performedById },
       });
+      const unitCost = line.stockItem.lastCost ?? null;
+      const totalCost = unitCost ? unitCost.times(needed) : null;
       await tx.movement.create({
         data: {
           direction: "SAIDA",
@@ -269,6 +275,9 @@ export async function registerKitOutput(input: RegisterKitOutputInput) {
           notes: input.notes || `Saída de ${input.quantity}x ${kit.name}`,
           stockItemId: line.stockItemId,
           kitOutputId: kitOutput.id,
+          areaId: input.areaId,
+          unitCost,
+          totalCost,
           performedById: input.performedById,
         },
       });

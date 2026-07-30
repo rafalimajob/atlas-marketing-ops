@@ -118,21 +118,31 @@ movimentações manuais (todos os três campos nulos) podem ser editadas/excluí
 ### Kits (`Kit`, `KitItem`, `KitOutput`)
 
 - `KitItem` é a "receita" do kit (quais itens e quantas unidades de cada compõem 1 kit).
-- Retirar um kit não mexe em `Movement` diretamente — cria um `KitOutput` (quantos kits saíram,
-  quando, por quem) e, para cada `KitItem` do kit, uma `Movement` (`SAIDA`/`KIT`) vinculada via
-  `kitOutputId`, decrementando cada item componente. Tudo em uma transação
-  (`registerKitOutput()`), que primeiro valida que **todos** os componentes têm saldo suficiente
-  antes de decrementar qualquer um (evita ficar com saldo negativo em um item no meio do
-  processo).
+- **Editar um kit (somente ADMIN)**: `PATCH /api/kits/[id]` substitui `name` e a lista inteira de
+  `KitItem`s (apaga os antigos, cria os novos, na mesma transação do `prisma.kit.update` aninhado).
+  Isso só muda a "receita" dali para frente — `KitOutput`/`Movement` já criados guardam seu
+  próprio `stockItemId`/`quantity` e não são afetados retroativamente.
+- Retirar um kit não mexe em `Movement` diretamente — exige uma **área responsável** (`areaId`) e
+  cria um `KitOutput` (quantos kits saíram, quando, por quem) e, para cada `KitItem` do kit, uma
+  `Movement` (`SAIDA`/`KIT`) vinculada via `kitOutputId`, decrementando cada item componente. Tudo
+  em uma transação (`registerKitOutput()`), que primeiro valida que **todos** os componentes têm
+  saldo suficiente antes de decrementar qualquer um (evita ficar com saldo negativo em um item no
+  meio do processo). Cada `Movement` gerada também recebe `areaId` e um snapshot de
+  `unitCost`/`totalCost` (mesma regra do `applyMovement()`), para que a saída de kit conte em
+  Consumo por área junto com as retiradas manuais.
 - `KitOutput.kit` é `Restrict`: não dá pra apagar um kit que já teve saída registrada.
 
 ### Consumo por área (`Area`)
 
 - **Não é uma tabela paralela de saldo** — é só o cadastro dos nomes das áreas. Cada retirada
-  é uma `Movement` normal (`direction: SAIDA`, `type: CONSUMO_INTERNO`) com `areaId` preenchido,
-  criada pelo mesmo `applyMovement()` usado pelas Movimentações comuns. Isso significa que o
-  saldo de estoque nunca pode divergir entre "Movimentações" e "Consumo por área" — é a mesma
-  fonte de verdade.
+  é uma `Movement` normal (`direction: SAIDA`) com `areaId` preenchido, criada pelo mesmo
+  `applyMovement()` usado pelas Movimentações comuns (retiradas manuais são `type: CONSUMO_INTERNO`;
+  saídas de kit chegam aqui com `type: KIT` e `kitOutputId` também preenchido). Isso significa que
+  o saldo de estoque nunca pode divergir entre "Movimentações", "Kits" e "Consumo por área" — é a
+  mesma fonte de verdade.
+- Uma `Movement` de Consumo por área com `kitOutputId` preenchido (gerada por saída de kit) não
+  pode ser editada/excluída em `/api/area-withdrawals/[id]` — só as retiradas manuais (sem
+  `kitOutputId`) podem, seguindo a mesma regra de `isMovementLocked()` usada em Movimentações.
 - `Area` é `Restrict` em `Movement.area`: não dá pra apagar uma área que já teve retirada.
 
 ### Histórico (`HistoryLog`)

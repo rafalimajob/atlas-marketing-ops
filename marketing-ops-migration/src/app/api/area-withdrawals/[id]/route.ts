@@ -8,6 +8,8 @@ import { toErrorResponse } from "@/lib/api-errors";
 type RouteContext = { params: Promise<{ id: string }> };
 
 const NOT_A_WITHDRAWAL = "Esta movimentação não é uma retirada de Consumo por área.";
+const KIT_LOCKED_MESSAGE =
+  "Esta retirada foi gerada automaticamente por uma saída de kit e não pode ser editada ou excluída aqui.";
 
 export async function PATCH(request: NextRequest, { params }: RouteContext) {
   const gate = await requireAdmin();
@@ -18,6 +20,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   const existing = await prisma.movement.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ error: "Retirada não encontrada." }, { status: 404 });
   if (!existing.areaId) return NextResponse.json({ error: NOT_A_WITHDRAWAL }, { status: 409 });
+  if (existing.kitOutputId) return NextResponse.json({ error: KIT_LOCKED_MESSAGE }, { status: 409 });
 
   const body = await request.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Corpo inválido." }, { status: 400 });
@@ -85,6 +88,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
   });
   if (!existing) return NextResponse.json({ error: "Retirada não encontrada." }, { status: 404 });
   if (!existing.areaId) return NextResponse.json({ error: NOT_A_WITHDRAWAL }, { status: 409 });
+  if (existing.kitOutputId) return NextResponse.json({ error: KIT_LOCKED_MESSAGE }, { status: 409 });
 
   try {
     await deleteMovement(id, session.user.id);

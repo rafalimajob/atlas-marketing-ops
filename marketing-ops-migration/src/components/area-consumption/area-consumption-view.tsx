@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Plus, Settings2, Boxes, Wallet, ArrowDownRight, Edit2, Trash2 } from "lucide-react";
+import { Plus, Settings2, Boxes, Wallet, ArrowDownRight, Edit2, Trash2, Lock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,10 @@ const { purple: PURPLE, primary: PRIMARY, crit: CRIT } = CHART_COLORS;
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 const fmtBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+function isLocked(m: MovementDTO) {
+  return Boolean(m.kitOutputId);
+}
 
 export function AreaConsumptionView({
   initialWithdrawals,
@@ -180,7 +184,9 @@ export function AreaConsumptionView({
             </tr>
           </thead>
           <tbody>
-            {filtered.map((m) => (
+            {filtered.map((m) => {
+              const locked = isLocked(m);
+              return (
               <tr
                 key={m.id}
                 className="border-t border-zinc-100 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900/40"
@@ -199,35 +205,45 @@ export function AreaConsumptionView({
                 <td className="px-3 py-2.5 text-zinc-500 dark:text-zinc-400">{m.notes ?? "—"}</td>
                 {isAdmin && (
                   <td className="px-3 py-2.5">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditing(m);
-                          setShowWithdrawalModal(true);
-                        }}
-                        className="text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200"
-                        aria-label="Editar"
+                    {locked ? (
+                      <div
+                        className="flex items-center justify-end text-zinc-300 dark:text-zinc-700"
+                        title="Gerada automaticamente por uma saída de kit — não pode ser editada ou excluída aqui."
                       >
-                        <Edit2 size={15} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setError(null);
-                          setConfirmDeleteTarget(m);
-                        }}
-                        disabled={deletingId === m.id}
-                        className="text-brand-crit hover:opacity-70 disabled:opacity-40"
-                        aria-label="Excluir"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
+                        <Lock size={14} />
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditing(m);
+                            setShowWithdrawalModal(true);
+                          }}
+                          className="text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200"
+                          aria-label="Editar"
+                        >
+                          <Edit2 size={15} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setError(null);
+                            setConfirmDeleteTarget(m);
+                          }}
+                          disabled={deletingId === m.id}
+                          className="text-brand-crit hover:opacity-70 disabled:opacity-40"
+                          aria-label="Excluir"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    )}
                   </td>
                 )}
               </tr>
-            ))}
+              );
+            })}
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={isAdmin ? 9 : 8} className="py-2">

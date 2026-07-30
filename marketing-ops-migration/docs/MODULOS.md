@@ -103,11 +103,18 @@ Um kit é uma "receita" (lista de itens de estoque + quantidade de cada) que pod
 lote — ex.: "Kit Boas-vindas" = 1 camiseta + 1 ecobag + 1 bloco.
 
 - Cadastro do kit: nome + lista de itens (sem duplicar o mesmo item dentro do mesmo kit).
-- **Retirar um kit** ("saída de kit"): informa quantos kits saem; o sistema valida que **todos**
-  os itens componentes têm saldo suficiente antes de decrementar qualquer um, depois cria um
-  `KitOutput` (o evento agregado: "saíram 3 kits Boas-vindas, em tal data, por fulano") e, para
-  cada item componente, uma `Movement` (`SAIDA`/`KIT`) vinculada a esse `KitOutput` — dá pra ver
-  tanto o evento inteiro quanto o efeito item a item.
+- **Editar um kit (somente ADMIN)**: administradores podem renomear o kit e substituir sua lista
+  de itens/quantidades a qualquer momento. A edição só afeta a "receita" do kit dali para frente —
+  saídas (`KitOutput`/`Movement`) já registradas guardam seu próprio snapshot de item/quantidade e
+  não mudam retroativamente.
+- **Retirar um kit** ("saída de kit"): escolhe a **área responsável pela retirada** (obrigatório) e
+  informa quantos kits saem; o sistema valida que **todos** os itens componentes têm saldo
+  suficiente antes de decrementar qualquer um, depois cria um `KitOutput` (o evento agregado:
+  "saíram 3 kits Boas-vindas, em tal data, por fulano") e, para cada item componente, uma
+  `Movement` (`SAIDA`/`KIT`) vinculada a esse `KitOutput` **e** à área escolhida (`areaId`) — dá
+  pra ver tanto o evento inteiro quanto o efeito item a item, e a retirada é automaticamente
+  contabilizada em Consumo por área (com snapshot de `unitCost`/`totalCost`, mesma regra usada
+  pelas retiradas manuais).
 - Excluir um kit é bloqueado se ele já tiver alguma saída registrada.
 
 ## Consumo por área (`/consumo-area`)
@@ -133,6 +140,10 @@ Controla o consumo físico **e financeiro** de materiais retirados pelas áreas 
   preservado e apenas o valor total é recalculado. Essas retiradas continuam bloqueadas
   (cadeado) na tela de Movimentações — o lugar certo para mexer nelas é aqui, onde o contexto de
   área/custo é tratado corretamente.
+- **Retiradas geradas por saída de kit** também aparecem nesta lista (toda `Movement` com `areaId`
+  entra na consulta, independente da origem), mas aparecem com o cadeado em vez dos botões de
+  editar/excluir: elas foram geradas pelo módulo de Kits (`kitOutputId` setado) e mexer nelas aqui
+  desincronizaria o `KitOutput` de origem.
 
 ## Usuários (`/usuarios`, somente ADMIN)
 

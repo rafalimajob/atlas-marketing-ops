@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { SaveButton, type SaveStatus } from "@/components/ui/save-button";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import type { StockOptionDTO } from "@/types/movement";
+import type { KitDTO } from "@/types/kit";
 
 interface KitLine {
   stockItemId: string;
@@ -16,16 +17,22 @@ interface KitLine {
 }
 
 export function KitModal({
+  kit,
   stock,
   onClose,
   onSaved,
 }: {
+  kit?: KitDTO;
   stock: StockOptionDTO[];
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [name, setName] = useState("");
-  const [items, setItems] = useState<KitLine[]>([{ stockItemId: stock[0]?.id ?? "", quantity: 1 }]);
+  const [name, setName] = useState(kit?.name ?? "");
+  const [items, setItems] = useState<KitLine[]>(
+    kit?.items.map((i) => ({ stockItemId: i.stockItemId, quantity: i.quantity })) ?? [
+      { stockItemId: stock[0]?.id ?? "", quantity: 1 },
+    ]
+  );
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -44,8 +51,8 @@ export function KitModal({
     setError(null);
     setStatus("saving");
     try {
-      const res = await fetch("/api/kits", {
-        method: "POST",
+      const res = await fetch(kit ? `/api/kits/${kit.id}` : "/api/kits", {
+        method: kit ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, items }),
       });
@@ -61,7 +68,7 @@ export function KitModal({
   }
 
   return (
-    <Modal title="Novo kit" onClose={onClose} wide>
+    <Modal title={kit ? "Editar kit" : "Novo kit"} onClose={onClose} wide>
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
 
@@ -110,7 +117,12 @@ export function KitModal({
           <Button type="button" variant="ghost" onClick={onClose} disabled={status !== "idle"}>
             Cancelar
           </Button>
-          <SaveButton type="submit" status={status} idleLabel="Salvar kit" savingLabel="Salvando..." />
+          <SaveButton
+            type="submit"
+            status={status}
+            idleLabel={kit ? "Salvar" : "Salvar kit"}
+            savingLabel="Salvando..."
+          />
         </div>
       </form>
     </Modal>

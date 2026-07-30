@@ -71,8 +71,8 @@ Detalhe completo do fluxo: `docs/AUTENTICACAO_E_SEGURANCA.md`.
 | `/api/areas/[id]` | DELETE | Bloqueado (409) se houver retirada vinculada |
 | `/api/area-withdrawals` | GET | Lista todas as `Movement` com `areaId` preenchido |
 | `/api/area-withdrawals` | POST | Valida área/item/quantidade; força `direction: SAIDA`, `type: CONSUMO_INTERNO` no servidor; chama `applyMovement()` |
-| `/api/area-withdrawals/[id]` | PATCH | **Somente ADMIN**. Reverte o efeito antigo no saldo e aplica o novo; recalcula `unitCost`/`totalCost` só se o item mudar; 409 se a movimentação não tiver `areaId` ou se o resultado deixar algum item negativo |
-| `/api/area-withdrawals/[id]` | DELETE | **Somente ADMIN**. Reverte o efeito no saldo e remove o registro; 409 se a movimentação não tiver `areaId` ou se reverter deixar o item negativo |
+| `/api/area-withdrawals/[id]` | PATCH | **Somente ADMIN**. Reverte o efeito antigo no saldo e aplica o novo; recalcula `unitCost`/`totalCost` só se o item mudar; 409 se a movimentação não tiver `areaId`, se tiver `kitOutputId` (gerada por saída de kit) ou se o resultado deixar algum item negativo |
+| `/api/area-withdrawals/[id]` | DELETE | **Somente ADMIN**. Reverte o efeito no saldo e remove o registro; 409 se a movimentação não tiver `areaId`, se tiver `kitOutputId` (gerada por saída de kit) ou se reverter deixar o item negativo |
 
 ## Kits
 
@@ -80,8 +80,9 @@ Detalhe completo do fluxo: `docs/AUTENTICACAO_E_SEGURANCA.md`.
 |---|---|---|
 | `/api/kits` | GET | Lista kits com itens e nome/código do item |
 | `/api/kits` | POST | Valida nome/itens (sem duplicata); cria `Kit` + `KitItem`s |
+| `/api/kits/[id]` | PATCH | **Somente ADMIN**. Valida nome/itens (sem duplicata); substitui a lista de `KitItem`s por completo. Não afeta `KitOutput`/`Movement` já registrados |
 | `/api/kits/[id]` | DELETE | Bloqueado (409) se o kit já tiver saída registrada |
-| `/api/kits/[id]/output` | POST | Registra retirada: valida saldo de todos os componentes, cria `KitOutput` + N `Movement` |
+| `/api/kits/[id]/output` | POST | Exige `areaId`; valida saldo de todos os componentes, cria `KitOutput` + N `Movement` (`SAIDA`/`KIT`), cada uma com a área e um snapshot de `unitCost`/`totalCost` (mesma regra de `applyMovement`), contabilizando a saída em Consumo por área |
 
 ## Pedidos
 

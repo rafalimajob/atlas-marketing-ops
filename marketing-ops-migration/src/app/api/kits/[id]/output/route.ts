@@ -22,10 +22,17 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: "Quantidade de kits precisa ser maior que zero." }, { status: 400 });
   }
 
+  const areaId = typeof body?.areaId === "string" ? body.areaId : "";
+  if (!areaId) return NextResponse.json({ error: "Selecione uma área para a retirada." }, { status: 400 });
+
+  const area = await prisma.area.findUnique({ where: { id: areaId } });
+  if (!area) return NextResponse.json({ error: "Área não encontrada." }, { status: 404 });
+
   try {
     const kitOutput = await registerKitOutput({
       kitId,
       quantity,
+      areaId,
       project: typeof body?.project === "string" ? body.project.trim() : null,
       notes: typeof body?.notes === "string" ? body.notes.trim() : null,
       performedById: session.user.id,
@@ -35,7 +42,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       action: "CREATE",
       entity: "KIT",
       entityId: kitId,
-      summary: `Saída de ${quantity}x kit "${kit.name}"`,
+      summary: `Saída de ${quantity}x kit "${kit.name}" pela área "${area.name}"`,
       userId: session.user.id,
     });
 
