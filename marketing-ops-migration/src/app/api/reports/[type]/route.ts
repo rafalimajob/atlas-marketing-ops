@@ -12,7 +12,15 @@ type RouteContext = { params: Promise<{ type: string }> };
 
 const fmt = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "");
 
-export async function GET(_request: NextRequest, { params }: RouteContext) {
+function dateRangeFilter(from: string | null, to: string | null) {
+  if (!from && !to) return undefined;
+  const range: { gte?: Date; lte?: Date } = {};
+  if (from) range.gte = new Date(`${from}T00:00:00.000Z`);
+  if (to) range.lte = new Date(`${to}T23:59:59.999Z`);
+  return range;
+}
+
+export async function GET(request: NextRequest, { params }: RouteContext) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
 
@@ -22,11 +30,19 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
   }
   const reportType = type as ReportType;
 
+  const { searchParams } = request.nextUrl;
+  // Mesmo intervalo aplicado tanto a `Order.requestDate` quanto a
+  // `Movement.date` — cada relatório usa a que faz sentido para seus dados.
+  const dateFilter = dateRangeFilter(searchParams.get("from"), searchParams.get("to"));
+
   let headers: string[] = [];
   let rows: (string | number)[][] = [];
 
   if (reportType === "pedidos-por-status") {
-    const orders = await prisma.order.findMany({ select: { status: true } });
+    const orders = await prisma.order.findMany({
+      where: { requestDate: dateFilter },
+      select: { status: true },
+    });
     headers = ["Status", "Quantidade"];
     rows = ORDER_STATUS_VALUES.map((s) => [
       ORDER_STATUS_LABEL[s],
@@ -34,6 +50,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     ]);
   } else if (reportType === "pedidos") {
     const orders = await prisma.order.findMany({
+      where: { requestDate: dateFilter },
       include: { stockItem: { select: { name: true } } },
       orderBy: { requestDate: "desc" },
     });
@@ -49,7 +66,10 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       fmt(o.deliveredDate),
     ]);
   } else if (reportType === "pedidos-por-projeto") {
-    const orders = await prisma.order.findMany({ select: { project: true } });
+    const orders = await prisma.order.findMany({
+      where: { requestDate: dateFilter },
+      select: { project: true },
+    });
     const map = new Map<string, number>();
     for (const o of orders) map.set(o.project, (map.get(o.project) ?? 0) + 1);
     headers = ["Projeto", "Quantidade"];
@@ -64,6 +84,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     rows = stock.filter((s) => s.quantity < s.minStock).map((s) => [s.code, s.name, s.quantity, s.minStock]);
   } else if (reportType === "movimentacoes") {
     const movements = await prisma.movement.findMany({
+      where: { date: dateFilter },
       include: { stockItem: { select: { name: true } } },
       orderBy: { date: "desc" },
     });
@@ -77,7 +98,10 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       m.notes ?? "",
     ]);
   } else if (reportType === "consumo-por-projeto") {
-    const movements = await prisma.movement.findMany({ where: { direction: "SAIDA" }, select: { project: true, quantity: true } });
+    const movements = await prisma.movement.findMany({
+      where: { direction: "SAIDA", date: dateFilter },
+      select: { project: true, quantity: true },
+    });
     const map = new Map<string, number>();
     for (const m of movements) {
       const project = m.project || "Outros";
@@ -85,6 +109,21 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     }
     headers = ["Projeto", "Quantidade consumida"];
     rows = [...map.entries()];
+  } else if (reportType === "consumo-por-area") {
+    const movements = await prisma.movement.findMany({
+      where: { areaId: { not: null }, date: dateFilter },
+      include: { area: { select: { name: true } } },
+    });
+    const map = new Map<string, { qty: number; value: number }>();
+    for (const m of movements) {
+      const area = m.area?.name ?? "Sem área";
+      const entry = map.get(area) ?? { qty: 0, value: 0 };
+      entry.qty += m.quantity;
+      entry.value += m.totalCost ? Number(m.totalCost) : 0;
+      map.set(area, entry);
+    }
+    headers = ["Área", "Quantidade consumida", "Valor consumido (R$)"];
+    rows = [...map.entries()].map(([area, { qty, value }]) => [area, qty, Number(value.toFixed(2))]);
   }
 
   const buffer = await buildXlsxBuffer(REPORT_LABEL_SAFE(reportType), headers, rows);

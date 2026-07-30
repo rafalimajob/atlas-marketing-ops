@@ -179,10 +179,20 @@ auditoria.
 
 ## Relatórios (`/relatorios`)
 
-Sete relatórios em Excel (`.xlsx`), gerados sob demanda (sem cache) via ExcelJS:
+Oito relatórios em Excel (`.xlsx`), gerados sob demanda (sem cache) via ExcelJS:
 `pedidos-por-status`, `pedidos`, `pedidos-por-projeto`, `estoque`, `itens-criticos`
-(itens abaixo do mínimo), `movimentacoes`, `consumo-por-projeto`. A página é só uma lista
-estática de cartões com link direto para `/api/reports/{tipo}` — o navegador baixa o arquivo.
+(itens abaixo do mínimo), `movimentacoes`, `consumo-por-projeto`, `consumo-por-área` (quantidade
+e valor consumido, agrupados por área — mesmo dado de Consumo por área, espelhando o relatório
+"Consumo por Projeto/Campanha" que já existia).
+
+- **Filtro de período compartilhado**: um único `DateRangeFilter` no topo da página (mesmo
+  componente usado em Movimentações/Consumo por área) se aplica a todos os links de exportação —
+  os relatórios com data própria (`Order.requestDate` para os de Pedidos, `Movement.date` para
+  Movimentações/Consumo) recebem `?from=&to=` no link. "Estoque atual" e "Itens abaixo do mínimo"
+  ficam marcados como "(estado atual)" e ignoram o período: são um retrato do saldo agora, não
+  existe "o estoque de tal período" para filtrar.
+- A página continua sendo só uma lista de cartões com link direto para `/api/reports/{tipo}` —
+  o navegador baixa o arquivo; nenhum estado de download é gerenciado no cliente.
 
 ## Identidade visual
 
