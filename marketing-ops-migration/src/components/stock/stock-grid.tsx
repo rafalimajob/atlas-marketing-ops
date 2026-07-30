@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Settings2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { ViewToggle, type ViewMode } from "@/components/ui/view-toggle";
@@ -13,8 +12,9 @@ import { StockCardGrid } from "@/components/stock/stock-card-grid";
 import { StockListView } from "@/components/stock/stock-list-view";
 import { StockModal } from "@/components/stock/stock-modal";
 import { CategoryManagerModal } from "@/components/stock/category-manager-modal";
+import { StockLevelFilter } from "@/components/stock/stock-level-filter";
 import { matchesSearch } from "@/lib/search";
-import { getStockLevel, STOCK_LEVEL_LABEL, type StockLevel } from "@/lib/stock-level";
+import { getStockLevel, type StockLevel } from "@/lib/stock-level";
 import type { StockItemDTO } from "@/types/stock";
 import type { CategoryDTO } from "@/types/category";
 
@@ -53,14 +53,23 @@ export function StockGrid({
     localStorage.setItem(VIEW_STORAGE_KEY, next);
   }
 
+  const searchFiltered = useMemo(
+    () => items.filter((s) => matchesSearch([s.name, s.category, s.code], search)),
+    [items, search]
+  );
+
+  const levelCounts = useMemo(() => {
+    const counts: Record<StockLevel, number> = { crit: 0, warn: 0, ok: 0 };
+    for (const s of searchFiltered) counts[getStockLevel(s.quantity, s.minStock)]++;
+    return counts;
+  }, [searchFiltered]);
+
   const filtered = useMemo(
     () =>
-      items.filter(
-        (s) =>
-          matchesSearch([s.name, s.category, s.code], search) &&
-          (levelFilter === "TODOS" || getStockLevel(s.quantity, s.minStock) === levelFilter)
+      searchFiltered.filter(
+        (s) => levelFilter === "TODOS" || getStockLevel(s.quantity, s.minStock) === levelFilter
       ),
-    [items, search, levelFilter]
+    [searchFiltered, levelFilter]
   );
 
   async function refresh() {
@@ -126,26 +135,16 @@ export function StockGrid({
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-3">
-          <Input
-            placeholder="Buscar por nome, código ou categoria..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="max-w-sm"
-          />
-          <Select
-            value={levelFilter}
-            onChange={(e) => setLevelFilter(e.target.value as StockLevel | "TODOS")}
-            className="w-56"
-          >
-            <option value="TODOS">Todos os níveis</option>
-            <option value="crit">{STOCK_LEVEL_LABEL.crit}</option>
-            <option value="warn">{STOCK_LEVEL_LABEL.warn}</option>
-            <option value="ok">{STOCK_LEVEL_LABEL.ok}</option>
-          </Select>
-        </div>
+        <Input
+          placeholder="Buscar por nome, código ou categoria..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-sm"
+        />
         <ViewToggle view={view} onChange={changeView} />
       </div>
+
+      <StockLevelFilter value={levelFilter} onChange={setLevelFilter} counts={levelCounts} />
 
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
 

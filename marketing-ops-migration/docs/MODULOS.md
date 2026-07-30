@@ -68,10 +68,12 @@ Cadastro dos itens que a área de Marketing controla fisicamente.
   automaticamente todos os itens que já usavam o nome antigo; excluir é bloqueado (409) se algum
   item ainda estiver com essa categoria.
 - Duas visualizações (grade de cartões / lista), alternáveis pelo `ViewToggle`.
-- **Filtro por nível de estoque**: `<Select>` ao lado da busca com "Todos os níveis", "Abaixo do
-  mínimo", "Próximo do mínimo" e "Estoque adequado" — mesmas três categorias e mesmo limiar do
-  `StockLevelBadge` já exibido em cada item (`getStockLevel()` em `src/lib/stock-level.ts` é a
-  única fonte de verdade para essa classificação, usada tanto pelo badge quanto pelo filtro).
+- **Filtro por nível de estoque**: `StockLevelFilter` renderiza uma pílula por nível ("Todos",
+  "Abaixo do mínimo", "Próximo do mínimo", "Estoque adequado"), cada uma com a contagem de itens
+  que casam com a busca atual e colorida com a mesma cor do `StockLevelBadge` exibido em cada
+  item — a pílula ativa fica com fundo tingido na cor do nível, as demais neutras. Mesmas três
+  categorias e mesmo limiar do badge (`getStockLevel()` em `src/lib/stock-level.ts` é a única
+  fonte de verdade para essa classificação, usada tanto pelo badge quanto pelo filtro).
 - Exclusão é bloqueada se o item tiver pedidos, movimentações ou kits vinculados — a mensagem de
   erro detalha exatamente quantos de cada tipo e onde resolver: movimentação manual → excluir em
   Movimentações; retirada de Consumo por área → excluir em Consumo por área; movimentação gerada
