@@ -9,13 +9,7 @@ export default async function KitsPage() {
     prisma.kit.findMany({
       include: {
         items: { include: { stockItem: { select: { name: true, code: true, lastCost: true } } } },
-        outputs: {
-          orderBy: { date: "desc" },
-          include: {
-            performedBy: { select: { name: true } },
-            movements: { take: 1, select: { area: { select: { id: true, name: true } } } },
-          },
-        },
+        _count: { select: { outputs: true } },
       },
       orderBy: { name: "asc" },
     }),
@@ -36,15 +30,7 @@ export default async function KitsPage() {
         lastCost: i.stockItem.lastCost ? i.stockItem.lastCost.toString() : null,
       },
     })),
-    outputs: k.outputs.map((o) => ({
-      id: o.id,
-      quantity: o.quantity,
-      project: o.project,
-      notes: o.notes,
-      date: o.date.toISOString(),
-      performedBy: o.performedBy,
-      area: o.movements[0]?.area ?? null,
-    })),
+    outputsCount: k._count.outputs,
   }));
   const stockOptions: StockOptionDTO[] = stock;
   const areaOptions: AreaDTO[] = areas.map((a) => ({

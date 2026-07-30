@@ -147,13 +147,13 @@ export function KitGrid({
               </span>
               <span className="font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">{fmtBRL(total)}</span>
             </div>
-            {isAdmin && k.outputs.length > 0 && (
+            {isAdmin && k.outputsCount > 0 && (
               <button
                 type="button"
                 onClick={() => setHistoryKitId(k.id)}
                 className="mb-3 flex items-center gap-1 self-start text-xs text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
               >
-                <History size={12} /> {k.outputs.length} saída(s) registrada(s) — ver/desfazer
+                <History size={12} /> {k.outputsCount} saída(s) registrada(s) — ver/desfazer
               </button>
             )}
             <Button variant="secondary" className="w-full justify-center" onClick={() => setOutputKit(k)}>

@@ -12,13 +12,10 @@ export async function GET() {
   const kits = await prisma.kit.findMany({
     include: {
       items: { include: { stockItem: { select: { name: true, code: true, lastCost: true } } } },
-      outputs: {
-        orderBy: { date: "desc" },
-        include: {
-          performedBy: { select: { name: true } },
-          movements: { take: 1, select: { area: { select: { id: true, name: true } } } },
-        },
-      },
+      // Só a contagem aqui — o histórico de saídas é paginado e carregado sob
+      // demanda em GET /api/kits/[id]/outputs, senão essa lista cresceria sem
+      // limite conforme o volume de saídas registradas.
+      _count: { select: { outputs: true } },
     },
     orderBy: { name: "asc" },
   });
@@ -61,13 +58,7 @@ export async function POST(request: NextRequest) {
       },
       include: {
         items: { include: { stockItem: { select: { name: true, code: true, lastCost: true } } } },
-        outputs: {
-          orderBy: { date: "desc" },
-          include: {
-            performedBy: { select: { name: true } },
-            movements: { take: 1, select: { area: { select: { id: true, name: true } } } },
-          },
-        },
+        _count: { select: { outputs: true } },
       },
     });
 

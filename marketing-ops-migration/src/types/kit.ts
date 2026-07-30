@@ -19,5 +19,7 @@ export interface KitDTO {
   id: string;
   name: string;
   items: KitItemDTO[];
-  outputs: KitOutputDTO[];
+  // Contagem, não a lista — o histórico de saídas é carregado sob demanda,
+  // paginado, quando o admin abre "Ver saídas" (ver KitOutputHistoryModal).
+  outputsCount: number;
 }

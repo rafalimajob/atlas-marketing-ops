@@ -137,6 +137,12 @@ movimentações manuais (todos os três campos nulos) podem ser editadas/excluí
   transação. Diferente de `updateMovement()`/`deleteMovement()`, não precisa validar saldo
   negativo: reverter uma saída sempre soma estoque, nunca subtrai. Depois de desfeita, o kit volta
   a poder ser excluído se não tiver outras saídas.
+- **`KitOutput` não é carregado por padrão nas listagens de `Kit`**: `GET /api/kits` e o carregamento
+  inicial da tela usam `_count: { select: { outputs: true } }` (contagem via `SELECT COUNT`, sem
+  buscar as linhas). A lista completa de saídas só é consultada em `GET /api/kits/[id]/outputs`,
+  paginada (`skip`/`take`) e filtrável por `date` (`from`/`to`) — pensado para o histórico de um
+  kit muito usado (centenas ou milhares de saídas ao longo do tempo) não pesar a tela de Kits nem
+  o payload de todo carregamento, mesmo para quem nunca abre o histórico.
 
 ### Consumo por área (`Area`)
 

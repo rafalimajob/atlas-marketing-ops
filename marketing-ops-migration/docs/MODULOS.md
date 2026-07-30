@@ -127,6 +127,13 @@ lote — ex.: "Kit Boas-vindas" = 1 camiseta + 1 ecobag + 1 bloco.
   errado. Diferente de editar/excluir uma movimentação manual, não há risco de saldo negativo
   (desfazer só devolve estoque), então a operação nunca é bloqueada por esse motivo. Depois de
   desfazer a última saída de um kit, ele volta a poder ser excluído normalmente.
+- **Histórico paginado, não embutido na listagem de kits**: o card só carrega a *contagem* de
+  saídas (`Kit._count.outputs`) — a lista em si (data, quantidade, área, responsável) só é buscada
+  quando o admin abre "Ver saídas", em páginas de 20 via `GET /api/kits/[id]/outputs?skip=&take=`,
+  com filtro de período (mesmo `DateRangeFilter` usado em Movimentações/Consumo por área) e um
+  botão "Carregar mais". Isso existe de propósito: sem isso, um kit usado com frequência acabaria
+  carregando centenas/milhares de saídas de uma vez toda vez que a tela de Kits fosse aberta —
+  mesmo para quem nunca vai olhar esse histórico.
 
 ## Consumo por área (`/consumo-area`)
 
