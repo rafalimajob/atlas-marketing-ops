@@ -5,6 +5,11 @@ funcionando localmente (a partir do pacote de migração). Deploy em si é uma
 sequência de decisões de infraestrutura + comandos — recomendo rodar cada
 etapa com o Claude Code, mas os pontos de decisão abaixo são seus.
 
+> **Status atual**: já em produção em **https://atlas-marketing-ops.vercel.app**
+> (projeto `atlas-marketing-ops` na Vercel, banco Postgres no Neon). Os passos
+> abaixo continuam valendo como referência de como esse ambiente foi montado
+> e para reproduzir em um projeto novo.
+
 ## 1. Banco de dados gerenciado (Postgres)
 
 O `docker-compose.yml` do pacote é só para desenvolvimento local. Para

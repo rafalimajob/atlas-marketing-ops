@@ -7,6 +7,11 @@ instituição e relatórios — substituindo o controle por planilhas.
 Stack: **Next.js 16 + React 19 + PostgreSQL + Prisma 7**, autenticação própria com MFA (TOTP)
 obrigatório e aprovação de cadastro por administrador.
 
+## Produção
+
+App em produção: **https://atlas-marketing-ops.vercel.app** (projeto `atlas-marketing-ops` na
+Vercel, banco Postgres gerenciado no Neon).
+
 ## Documentação
 
 | Documento | Conteúdo |

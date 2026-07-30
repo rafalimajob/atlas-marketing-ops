@@ -18,6 +18,9 @@ npx prisma studio               # inspecionar/editar dados via UI
 npx tsc --noEmit                # checagem de tipos
 npm run lint                    # ESLint (eslint.config.mjs ignora marketing-ops.jsx, o protótipo de referência)
 npm run build                   # build de produção (também valida tipos e lint)
+
+# Deploy (produção em https://atlas-marketing-ops.vercel.app)
+npx vercel deploy --prod --yes  # publica a branch atual como produção
 ```
 
 Não existe `npm test` — **não há suíte de testes automatizados no projeto hoje**. Validação de
