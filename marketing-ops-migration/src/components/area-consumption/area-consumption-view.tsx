@@ -179,6 +179,7 @@ export function AreaConsumptionView({
               <th className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Data</th>
               <th className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Área</th>
               <th className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Item</th>
+              <th className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Projeto/Campanha</th>
               <th className="px-3 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Quantidade</th>
               <th className="px-3 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Custo unit.</th>
               <th className="px-3 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Valor total</th>
@@ -198,6 +199,7 @@ export function AreaConsumptionView({
                 <td className="px-3 py-2.5 text-zinc-500 dark:text-zinc-400">{fmtDate(m.date)}</td>
                 <td className="px-3 py-2.5 text-zinc-900 dark:text-zinc-50">{m.area?.name ?? "—"}</td>
                 <td className="px-3 py-2.5 font-medium text-zinc-900 dark:text-zinc-50">{m.stockItem.name}</td>
+                <td className="px-3 py-2.5 text-zinc-500 dark:text-zinc-400">{m.project ?? "—"}</td>
                 <td className="px-3 py-2.5 text-right tabular-nums font-medium text-brand-crit">-{m.quantity}</td>
                 <td className="px-3 py-2.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
                   {m.unitCost ? fmtBRL(Number(m.unitCost)) : "—"}
@@ -250,7 +252,7 @@ export function AreaConsumptionView({
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={isAdmin ? 9 : 8} className="py-2">
+                <td colSpan={isAdmin ? 10 : 9} className="py-2">
                   <EmptyState
                     message={
                       withdrawals.length === 0
