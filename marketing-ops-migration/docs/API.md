@@ -89,7 +89,7 @@ Detalhe completo do fluxo: `docs/AUTENTICACAO_E_SEGURANCA.md`.
 | `/api/kits/[id]` | DELETE | Bloqueado (409) se o kit já tiver saída registrada |
 | `/api/kits/[id]/output` | POST | Exige `areaId`; valida saldo de todos os componentes, cria `KitOutput` + N `Movement` (`SAIDA`/`KIT`), cada uma com a área e um snapshot de `unitCost`/`totalCost` (mesma regra de `applyMovement`), contabilizando a saída em Consumo por área |
 | `/api/kits/[id]/outputs` | GET | **Somente ADMIN ou superior**. Histórico de saídas do kit, paginado (`skip`/`take`, padrão 20/página, máx. 50) e filtrável por período (`from`/`to`, `YYYY-MM-DD`). Retorna `{ items, total }` |
-| `/api/kit-outputs/[id]` | DELETE | **Somente ADMIN ou superior**. Desfaz a saída inteira: devolve ao estoque a quantidade de cada item componente e remove as `Movement`s geradas e o `KitOutput`. Nunca falha por saldo negativo (só devolve estoque) |
+| `/api/kit-outputs/[id]` | DELETE | **Somente ADMIN ou superior**. Devolve ao estoque `?quantity=` kits (padrão: a saída inteira, se omitido) proporcionalmente por item componente. Se `quantity` fechar a saída inteira, remove as `Movement`s e o `KitOutput`; senão, reduz a quantidade de ambos na mesma proporção. Nunca falha por saldo negativo (só devolve estoque) |
 
 ## Pedidos
 

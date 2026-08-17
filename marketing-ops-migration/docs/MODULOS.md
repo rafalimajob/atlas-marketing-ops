@@ -125,14 +125,24 @@ lote — ex.: "Kit Boas-vindas" = 1 camiseta + 1 ecobag + 1 bloco.
   contabilizada em Consumo por área (com snapshot de `unitCost`/`totalCost`, mesma regra usada
   pelas retiradas manuais).
 - Excluir um kit é bloqueado se ele já tiver alguma saída registrada.
-- **Desfazer uma saída de kit (somente ADMIN)**: cada cartão mostra um link "N saída(s)
-  registrada(s) — ver/desfazer" que abre o histórico de saídas do kit. Desfazer uma saída devolve
-  ao estoque a quantidade de cada item componente e remove tanto a `Movement` gerada (some de
-  Movimentações e de Consumo por área) quanto o `KitOutput` em si — não é uma edição de
-  quantidade, é a reversão completa do evento, pensada para o caso de erro de digitação ou kit
-  errado. Diferente de editar/excluir uma movimentação manual, não há risco de saldo negativo
-  (desfazer só devolve estoque), então a operação nunca é bloqueada por esse motivo. Depois de
-  desfazer a última saída de um kit, ele volta a poder ser excluído normalmente.
+- **Devolver uma saída de kit ao estoque, total ou parcialmente (somente ADMIN)**: cada cartão
+  mostra um link "N saída(s) registrada(s) — ver/desfazer" que abre o histórico de saídas do kit.
+  Ao clicar em devolver, um campo pede a quantidade a devolver (padrão: a saída inteira, editável
+  para menos) — caso comum: retiraram 30 kits para um evento, sobraram 10 sem uso, devolvem só
+  essas 10.
+  - **Devolução parcial**: repõe o estoque proporcional de cada item componente e reduz a
+    quantidade da `Movement` de cada item e do `KitOutput` na mesma proporção — o registro
+    continua existindo, só com a quantidade restante.
+  - **Devolução da quantidade inteira** (padrão, ou quando o campo não é reduzido): além de repor
+    o estoque, remove a `Movement` de cada item (some de Movimentações e de Consumo por área) e o
+    próprio `KitOutput` — reversão completa do evento, para o caso de erro de digitação ou kit
+    errado. Depois de devolver a última saída de um kit por completo, ele volta a poder ser
+    excluído normalmente.
+  - Diferente de editar/excluir uma movimentação manual, não há risco de saldo negativo (devolver
+    só repõe estoque), então a operação nunca é bloqueada por esse motivo.
+  - A proporção por item é recalculada a partir do estado atual da própria saída (não da receita
+    atual do kit), então continua correta mesmo que o kit tenha sido editado depois da retirada,
+    ou que essa saída já tenha sofrido uma devolução parcial anterior.
 - **Histórico paginado, não embutido na listagem de kits**: o card só carrega a *contagem* de
   saídas (`Kit._count.outputs`) — a lista em si (data, quantidade, área, responsável) só é buscada
   quando o admin abre "Ver saídas", em páginas de 20 via `GET /api/kits/[id]/outputs?skip=&take=`,

@@ -288,24 +288,63 @@ export async function registerKitOutput(input: RegisterKitOutputInput) {
 }
 
 /**
- * Desfaz uma saída de kit (engano de quantidade, kit errado etc.): devolve ao
- * estoque a quantidade retirada de cada item componente, remove as N
- * Movements geradas e o próprio KitOutput — tudo numa única transação.
- * Diferente de `updateMovement`/`deleteMovement`, não precisa validar saldo
- * negativo: desfazer uma saída sempre *devolve* estoque, nunca subtrai.
+ * Devolve ao estoque parte (ou tudo) do que uma saída de kit retirou — caso
+ * comum: retiraram 30 kits para um evento, sobraram 10 sem uso, devolvem só
+ * essas 10. `returnQuantity` é sempre em unidades de kit (não de item
+ * componente).
+ *
+ * A proporção por item é recalculada a partir do estado atual da própria
+ * Movement (`m.quantity / kitOutput.quantity`), não da receita atual do Kit
+ * (`KitItem.quantity`) — assim, se o kit for editado depois da retirada, ou
+ * se essa saída já tiver sofrido uma devolução parcial anterior, o cálculo
+ * continua correto (é o mesmo princípio de snapshot já usado para
+ * `unitCost`/`totalCost`).
+ *
+ * Quando `returnQuantity` fecha a saída inteira (== `kitOutput.quantity`),
+ * remove as Movements e o próprio KitOutput — mesmo resultado de antes,
+ * quando só existia desfazer tudo. Diferente de `updateMovement`/
+ * `deleteMovement`, não precisa validar saldo negativo: devolver estoque
+ * nunca subtrai.
  */
-export async function deleteKitOutput(id: string, performedById: string) {
+export async function returnKitOutputQuantity(id: string, returnQuantity: number, performedById: string) {
   return prisma.$transaction(async (tx) => {
-    const movements = await tx.movement.findMany({ where: { kitOutputId: id } });
+    const kitOutput = await tx.kitOutput.findUniqueOrThrow({ where: { id } });
 
-    for (const m of movements) {
-      await tx.stockItem.update({
-        where: { id: m.stockItemId },
-        data: { quantity: { increment: m.quantity }, updatedById: performedById },
-      });
+    if (!Number.isInteger(returnQuantity) || returnQuantity < 1 || returnQuantity > kitOutput.quantity) {
+      throw new Error(`Quantidade inválida: informe um número inteiro entre 1 e ${kitOutput.quantity}.`);
     }
 
-    await tx.movement.deleteMany({ where: { kitOutputId: id } });
-    await tx.kitOutput.delete({ where: { id } });
+    const movements = await tx.movement.findMany({ where: { kitOutputId: id } });
+    const isFullReturn = returnQuantity === kitOutput.quantity;
+
+    for (const m of movements) {
+      const portion = (m.quantity * returnQuantity) / kitOutput.quantity;
+      if (!Number.isInteger(portion)) {
+        throw new Error("Não foi possível calcular a devolução proporcional para um dos itens do kit.");
+      }
+
+      await tx.stockItem.update({
+        where: { id: m.stockItemId },
+        data: { quantity: { increment: portion }, updatedById: performedById },
+      });
+
+      if (isFullReturn) {
+        await tx.movement.delete({ where: { id: m.id } });
+      } else {
+        const newQuantity = m.quantity - portion;
+        await tx.movement.update({
+          where: { id: m.id },
+          data: { quantity: newQuantity, totalCost: m.unitCost ? m.unitCost.times(newQuantity) : null },
+        });
+      }
+    }
+
+    if (isFullReturn) {
+      await tx.kitOutput.delete({ where: { id } });
+    } else {
+      await tx.kitOutput.update({ where: { id }, data: { quantity: kitOutput.quantity - returnQuantity } });
+    }
+
+    return { isFullReturn, remainingQuantity: isFullReturn ? 0 : kitOutput.quantity - returnQuantity };
   });
 }

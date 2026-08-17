@@ -13,6 +13,8 @@ interface ConfirmDialogProps {
   loading?: boolean;
   danger?: boolean;
   error?: string | null;
+  confirmDisabled?: boolean;
+  children?: React.ReactNode;
 }
 
 export function ConfirmDialog({
@@ -25,6 +27,8 @@ export function ConfirmDialog({
   loading,
   danger,
   error,
+  confirmDisabled,
+  children,
 }: ConfirmDialogProps) {
   return (
     <div
@@ -37,6 +41,7 @@ export function ConfirmDialog({
       >
         <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">{title}</h3>
         <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{message}</p>
+        {children && <div className="mt-3">{children}</div>}
         {error && (
           <div className="mt-3">
             <ErrorBanner message={error} />
@@ -46,7 +51,7 @@ export function ConfirmDialog({
           <Button variant="secondary" onClick={onCancel} disabled={loading}>
             {cancelLabel}
           </Button>
-          <Button variant={danger ? "danger" : "primary"} onClick={onConfirm} disabled={loading}>
+          <Button variant={danger ? "danger" : "primary"} onClick={onConfirm} disabled={loading || confirmDisabled}>
             {loading ? "Confirmando..." : confirmLabel}
           </Button>
         </div>

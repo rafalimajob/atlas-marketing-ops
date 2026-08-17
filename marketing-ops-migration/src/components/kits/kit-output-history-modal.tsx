@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Undo2 } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -41,6 +42,7 @@ export function KitOutputHistoryModal({
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [confirmDeleteTarget, setConfirmDeleteTarget] = useState<KitOutputDTO | null>(null);
+  const [returnQuantity, setReturnQuantity] = useState(1);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -91,11 +93,15 @@ export function KitOutputHistoryModal({
     setError(null);
     setDeletingId(output.id);
     try {
-      const res = await fetch(`/api/kit-outputs/${output.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/kit-outputs/${output.id}?quantity=${returnQuantity}`, { method: "DELETE" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Não foi possível desfazer esta saída.");
-      setItems((prev) => prev.filter((o) => o.id !== output.id));
-      setTotal((prev) => prev - 1);
+      if (!res.ok) throw new Error(data.error ?? "Não foi possível devolver esta saída ao estoque.");
+      if (returnQuantity >= output.quantity) {
+        setItems((prev) => prev.filter((o) => o.id !== output.id));
+        setTotal((prev) => prev - 1);
+      } else {
+        setItems((prev) => prev.map((o) => (o.id === output.id ? { ...o, quantity: data.remainingQuantity } : o)));
+      }
       setConfirmDeleteTarget(null);
       onChanged();
     } catch (err) {
@@ -111,8 +117,9 @@ export function KitOutputHistoryModal({
         {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
 
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Desfazer uma saída devolve ao estoque a quantidade de cada item retirado e remove esse
-          registro de Movimentações e Consumo por área. Use quando a retirada foi um engano.
+          Devolver uma saída repõe o estoque proporcional de cada item componente. Devolver a
+          quantidade inteira remove o registro de Movimentações e Consumo por área; devolver menos
+          (ex.: retiraram 30, sobraram 10 sem uso) mantém o registro com a quantidade restante.
         </p>
 
         <DateRangeFilter value={range} onChange={setRange} />
@@ -149,11 +156,12 @@ export function KitOutputHistoryModal({
                     onClick={() => {
                       setError(null);
                       setConfirmDeleteTarget(o);
+                      setReturnQuantity(o.quantity);
                     }}
                     disabled={deletingId === o.id}
                     className="flex shrink-0 items-center gap-1 text-brand-crit hover:opacity-70 disabled:opacity-40"
-                    aria-label="Desfazer saída"
-                    title="Desfazer saída"
+                    aria-label="Devolver ao estoque"
+                    title="Devolver ao estoque"
                   >
                     <Undo2 size={15} />
                   </button>
@@ -183,19 +191,33 @@ export function KitOutputHistoryModal({
 
       {confirmDeleteTarget && (
         <ConfirmDialog
-          title="Desfazer saída de kit"
-          message={`Desfazer a saída de ${confirmDeleteTarget.quantity}x "${kit.name}"? O estoque de todos os itens componentes será devolvido e o registro será removido de Movimentações e Consumo por área. Essa ação não pode ser desfeita.`}
-          confirmLabel="Desfazer saída"
+          title="Devolver saída ao estoque"
+          message={
+            returnQuantity >= confirmDeleteTarget.quantity
+              ? `Devolver os ${confirmDeleteTarget.quantity}x "${kit.name}" inteiros? O estoque de todos os itens componentes será restaurado e o registro será removido de Movimentações e Consumo por área. Essa ação não pode ser desfeita.`
+              : `Devolver ${returnQuantity}x de ${confirmDeleteTarget.quantity}x "${kit.name}" retirados? O estoque proporcional de cada item componente será restaurado; o registro continua, com ${confirmDeleteTarget.quantity - returnQuantity}x restantes. Essa ação não pode ser desfeita.`
+          }
+          confirmLabel="Devolver ao estoque"
           cancelLabel="Cancelar"
           danger
           loading={deletingId === confirmDeleteTarget.id}
           error={error}
+          confirmDisabled={!Number.isInteger(returnQuantity) || returnQuantity < 1 || returnQuantity > confirmDeleteTarget.quantity}
           onConfirm={confirmDelete}
           onCancel={() => {
             setConfirmDeleteTarget(null);
             setError(null);
           }}
-        />
+        >
+          <Input
+            label={`Quantidade a devolver (máx. ${confirmDeleteTarget.quantity})`}
+            type="number"
+            min={1}
+            max={confirmDeleteTarget.quantity}
+            value={returnQuantity}
+            onChange={(e) => setReturnQuantity(Number(e.target.value))}
+          />
+        </ConfirmDialog>
       )}
     </Modal>
   );
