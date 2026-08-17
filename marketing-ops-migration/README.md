@@ -23,6 +23,7 @@ Vercel, banco Postgres gerenciado no Neon).
 | [`docs/API.md`](docs/API.md) | Referência de todas as rotas de API |
 | [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) | Paleta de cores institucional, tema claro/escuro, componentes de UI |
 | [`docs/MANUTENCAO.md`](docs/MANUTENCAO.md) | Comandos do dia a dia, lacunas conhecidas, onde adicionar o quê |
+| [`docs/HISTORICO.md`](docs/HISTORICO.md) | Registro cronológico de mudanças relevantes, com o porquê de cada decisão |
 | [`DEPLOYMENT.md`](DEPLOYMENT.md) | Guia de deploy (banco gerenciado, hospedagem, variáveis de ambiente) |
 
 ## Como rodar localmente
