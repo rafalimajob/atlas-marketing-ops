@@ -42,8 +42,8 @@ npx prisma db seed               # (opcional) dados de demonstração — ver do
 npm run dev                      # http://localhost:3000
 ```
 
-Sem `EMAIL_API_KEY` configurado, o link de confirmação de cadastro é apenas logado no console do
-servidor (não é enviado de verdade) — suficiente para desenvolvimento local.
+Depois do cadastro, a conta fica com status `PENDING` até um administrador aprovar em `/usuarios`
+— não há confirmação por e-mail nesse fluxo.
 
 ## Scripts
 

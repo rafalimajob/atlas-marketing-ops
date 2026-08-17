@@ -37,11 +37,13 @@ Area ──< Movement (retiradas de "Consumo por área")
   por um admin.
 - `mfaEnabled` / `mfaSecret` (criptografado) / `mfaBackupCodes` (hasheados): estado do MFA
   obrigatório. Nenhum usuário loga sem MFA configurado — é forçado no primeiro login.
-- `VerificationToken` é genérico (`purpose: string`) e serve tanto para confirmação de e-mail
-  quanto para os tickets de fluxo de MFA — na prática, os tickets de MFA hoje usam um mecanismo
-  separado (HMAC assinado em memória, `src/lib/tickets.ts`), não gravam nesta tabela; ela é
-  usada de fato só para `EMAIL_VERIFICATION`. O valor `"PASSWORD_RESET"` existe no comentário do
-  campo mas **não há fluxo de reset de senha implementado ainda**.
+- `VerificationToken` é genérico (`purpose: string`) — pensada para confirmação de e-mail e para
+  os tickets de fluxo de MFA, mas nenhuma rota grava nela hoje: os tickets de MFA usam um
+  mecanismo separado (HMAC assinado em memória, `src/lib/tickets.ts`), e a confirmação de e-mail
+  no cadastro foi removida (ver `docs/AUTENTICACAO_E_SEGURANCA.md`) porque o envio de e-mail nunca
+  chegou a ser configurado em produção. O valor `"PASSWORD_RESET"` existe no comentário do campo
+  para um fluxo futuro, mas **não há reset de senha implementado ainda**. `User.emailVerified`
+  segue o mesmo destino — coluna preservada no schema, mas não lida nem escrita por nenhuma rota.
 
 ### Pedidos de compra (`Order`, `Attachment`)
 

@@ -53,7 +53,6 @@ de produção):
 - `AUTH_SECRET` → gere um novo, diferente do de desenvolvimento
 - `ADMIN_EMAIL` → e-mail real de quem vai logar como administrador
 - `BLOB_READ_WRITE_TOKEN` → token do provedor de storage escolhido (passo 3)
-- `EMAIL_FROM` / `EMAIL_API_KEY` → provedor de envio de e-mail de verificação de cadastro (ex: Resend)
 
 ## 5. Migrations em produção
 
@@ -75,7 +74,7 @@ domínio próprio, a Vercel já fornece uma URL `*.vercel.app` funcional.
 
 ## 7. Checklist antes de anunciar para o time
 
-- [ ] Cadastro por e-mail testado em produção, incluindo o e-mail de verificação chegando de fato (não só no console de dev)
+- [ ] Cadastro testado em produção, incluindo a aprovação da conta por um admin em `/usuarios`
 - [ ] Configuração de MFA testada com um autenticador real (Google Authenticator/Authy), incluindo os backup codes
 - [ ] Login completo (senha + código MFA) testado em produção, não só localmente
 - [ ] Confirme que cada item de estoque, movimentação e saída de kit exibe o nome de quem fez a ação — não só a data

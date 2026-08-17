@@ -37,10 +37,10 @@ export default function RegisterPage() {
   if (done) {
     return (
       <div className="space-y-3 text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">Confira seu e-mail</h1>
+        <h1 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">Cadastro enviado</h1>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Enviamos um link de confirmação para <strong>{email}</strong>. Em ambiente de
-          desenvolvimento, o link aparece no console do servidor (terminal do <code>npm run dev</code>).
+          Sua conta foi criada e está aguardando a aprovação de um administrador. Você vai
+          conseguir entrar assim que ela for aprovada.
         </p>
         <Link href="/login" className="text-sm font-medium text-brand-primary hover:underline">
           Voltar para o login

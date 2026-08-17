@@ -23,13 +23,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "E-mail ou senha inválidos." }, { status: 401 });
   }
 
-  if (!user.emailVerified) {
-    return NextResponse.json(
-      { error: "Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada." },
-      { status: 403 }
-    );
-  }
-
   if (user.status === "PENDING") {
     return NextResponse.json(
       { error: "Seu cadastro está aguardando aprovação de um administrador." },

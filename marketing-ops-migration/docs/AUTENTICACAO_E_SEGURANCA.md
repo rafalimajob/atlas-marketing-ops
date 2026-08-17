@@ -3,31 +3,33 @@
 ## Visão geral do fluxo
 
 ```
-Cadastro ──► Confirmação de e-mail ──► Aprovação de um admin ──► Configuração de MFA (1ª vez)
-                                                                          │
-                                                                          ▼
-                                                              Login normal (senha + TOTP/backup code)
+Cadastro ──► Aprovação de um admin ──► Configuração de MFA (1ª vez)
+                                                 │
+                                                 ▼
+                                     Login normal (senha + TOTP/backup code)
 ```
 
-Não existe login sem os três: e-mail confirmado, conta aprovada, e MFA validado. A única exceção
-ao terceiro item é o navegador marcado como confiável por até 30 dias (ver "Confiar neste
-navegador" abaixo) — a senha, porém, **nunca** é dispensada, em nenhum cenário.
+Não existe login sem os dois: conta aprovada e MFA validado. A única exceção ao segundo item é o
+navegador marcado como confiável por até 30 dias (ver "Confiar neste navegador" abaixo) — a
+senha, porém, **nunca** é dispensada, em nenhum cenário.
+
+Não há confirmação de e-mail no cadastro — havia uma etapa assim (link enviado por e-mail antes
+da aprovação), removida porque o envio de e-mail nunca chegou a ser configurado em produção
+(sem `EMAIL_API_KEY`, o link só ia parar no console do servidor, inacessível para quem se
+cadastrava de verdade) e a combinação aprovação manual + MFA obrigatório já cobre tanto "alguém de
+confiança decide quem entra" quanto "prova de posse de um segundo fator" sem depender de e-mail
+funcionando. O campo `User.emailVerified` e o `purpose: "EMAIL_VERIFICATION"` de
+`VerificationToken` continuam no schema, mas não são mais lidos nem escritos por nenhuma rota —
+ver `docs/BANCO_DE_DADOS.md`.
 
 ### 1. Cadastro (`POST /api/auth/register`)
 
 Cria o `User` com `role: USER`, `status: PENDING` (padrão do schema), senha com hash bcrypt
-(custo 12), e envia um e-mail com link de confirmação (`VerificationToken`, validade 24h). Em
-desenvolvimento, sem `EMAIL_API_KEY` configurado, o link é apenas **logado no console** do
-servidor em vez de enviado de verdade (`src/lib/mail.ts`).
+(custo 12).
 
-### 2. Confirmação de e-mail (`POST /api/auth/verify-email`)
+### 2. Aprovação por um administrador
 
-Valida o token (propósito e expiração) e, em uma transação, marca `User.emailVerified` e apaga o
-token. Sem isso, o login é bloqueado com uma mensagem explícita.
-
-### 3. Aprovação por um administrador
-
-Mesmo com e-mail confirmado, `status` continua `PENDING` até um `ADMIN` aprovar em
+Logo após o cadastro, `status` continua `PENDING` até um `ADMIN` aprovar em
 `/usuarios` (`PATCH /api/users/[id]`, `{ status: "ACTIVE" }`). **Não existe fluxo de
 autoaprovação** — alguém com papel `ADMIN` precisa agir. Enquanto pendente, tentar logar retorna
 403 com "Seu cadastro está aguardando aprovação de um administrador."
@@ -37,7 +39,7 @@ Depois de aprovado, um admin também pode **desativar** o acesso a qualquer mome
 usuário e todo o histórico vinculado a ele continuam no banco (ver "Por que não existe exclusão
 de verdade" abaixo).
 
-### 4. Primeiro login → configuração obrigatória de MFA
+### 3. Primeiro login → configuração obrigatória de MFA
 
 `POST /api/auth/login/precheck` (chamado pela tela de login) verifica e-mail/senha e o `status`;
 se `mfaEnabled` ainda for `false`, devolve um ticket de bootstrap e o front redireciona para
@@ -53,15 +55,15 @@ se `mfaEnabled` ainda for `false`, devolve um ticket de bootstrap e o front redi
 4. A sessão é criada (`signIn("credentials", { ticket })`) sem pedir o código de novo, já que a
    posse do autenticador acabou de ser comprovada.
 
-### 5. Logins seguintes
+### 4. Logins seguintes
 
 `precheck` emite um ticket de `mfa-challenge`; a tela `/mfa-challenge` pede o código de 6
 dígitos (ou um backup code como alternativa) e chama `signIn("credentials", { ticket, totpCode })`
 — o NextAuth valida tudo dentro de `authorize()` em `src/lib/auth.ts`. **Exceção**: se o navegador
 tiver o cookie de confiança válido para essa conta (ver seção abaixo), `precheck` pula direto para
-o passo 6 sem pedir TOTP.
+o passo 5 sem pedir TOTP.
 
-### 6. Confiar neste navegador (30 dias)
+### 5. Confiar neste navegador (30 dias)
 
 Na tela de configuração inicial do MFA (após validar o 1º código) e na tela de desafio de todo
 login seguinte, existe um checkbox **"Confiar neste navegador por 30 dias"**. Ao marcar:
@@ -78,8 +80,7 @@ login seguinte, existe um checkbox **"Confiar neste navegador por 30 dias"**. Ao
 
 **O que continua igual, sem exceção**: a senha é sempre exigida em todo login, independente do
 cookie. O cookie só dispensa o *segundo fator*, nunca o primeiro. `authorize()` também
-re-valida ao vivo no banco (`emailVerified`, `mfaEnabled`, `status === "ACTIVE"`) antes de aceitar
-o ticket — se o admin desativar a conta ou o MFA for reconfigurado nesse meio-tempo, o cookie
+re-valida ao vivo no banco (`mfaEnabled`, `status === "ACTIVE"`) antes de aceitar o ticket — se o admin desativar a conta ou o MFA for reconfigurado nesse meio-tempo, o cookie
 antigo deixa de funcionar automaticamente, mesmo antes de expirar.
 
 **Escopo**: o cookie é assinado com o `userId` embutido — ele só libera login sem TOTP para a
@@ -133,9 +134,9 @@ verdade — rótulos, hierarquia e a regra de escrita):
 Três gates em `src/lib/require-admin.ts`, cada rota escolhe o que precisa:
 - **`requireAdmin()`** — `ADMIN` ou `SUPER_ADMIN`. Usado por `api/users/*` e pelas rotas de
   editar/excluir movimentações, kits (edição) e retiradas de área.
-- **`requireSuperAdmin()`** — só `SUPER_ADMIN`. Não é usado por nenhuma rota de negócio hoje;
-  existe para o dia em que uma ação exigir exclusivamente o topo da hierarquia (a proteção de
-  conceder/editar `SUPER_ADMIN` já vive inline em `api/users/[id]/route.ts`, ver abaixo).
+- **`requireSuperAdmin()`** — só `SUPER_ADMIN`. Usado por `/api/history-logs` (tela de Auditoria);
+  a proteção de conceder/editar `SUPER_ADMIN` também vive inline em `api/users/[id]/route.ts`, ver
+  abaixo.
 - **`requireWriteAccess()`** — qualquer papel exceto `VIEWER`. Usado por todo POST/PATCH/DELETE
   de estoque, movimentações, pedidos, kits, retiradas de área, categorias e áreas.
 
@@ -191,5 +192,3 @@ Ver `.env.example` na raiz do projeto:
 - `AUTH_SECRET` — segredo do NextAuth (sessão JWT). Gerar com `openssl rand -base64 32`.
 - `MFA_ENCRYPTION_KEY` — obrigatória, formato estrito (32 bytes hex), usada para criptografar o
   secret TOTP em repouso.
-- `EMAIL_FROM` / `EMAIL_API_KEY` — envio real de e-mail de confirmação via Resend; sem
-  `EMAIL_API_KEY`, o link é só logado no console (modo dev).

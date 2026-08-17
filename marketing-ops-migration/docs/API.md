@@ -19,8 +19,7 @@ Todas as rotas ficam sob `src/app/api/`. Convenções gerais:
 
 | Rota | Método | Descrição |
 |---|---|---|
-| `/api/auth/register` | POST | Cria usuário (`PENDING`), envia e-mail de confirmação |
-| `/api/auth/verify-email` | POST | Confirma e-mail via token |
+| `/api/auth/register` | POST | Cria usuário (`PENDING`), aguardando aprovação de um admin |
 | `/api/auth/login/precheck` | POST | Valida e-mail/senha/status; emite ticket de MFA setup, challenge, ou (se houver cookie de confiança válido) login direto |
 | `/api/auth/mfa/setup` | POST | Gera secret TOTP + QR code (não persiste ainda) |
 | `/api/auth/mfa/verify` | POST | Confirma 1º código, persiste MFA, devolve backup codes |
