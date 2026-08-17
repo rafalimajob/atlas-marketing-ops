@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { UserCheck, UserX, Trash2, KeyRound } from "lucide-react";
+import { UserCheck, UserX, Trash2, KeyRound, ShieldOff } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -101,6 +101,21 @@ export function UserManagementView({
     }
   }
 
+  async function resetMfa(u: UserDTO) {
+    setError(null);
+    setBusyId(u.id);
+    try {
+      const res = await fetch(`/api/users/${u.id}/reset-mfa`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Não foi possível resetar o MFA.");
+      setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, mfaEnabled: false } : x)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro inesperado.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function deleteUser(id: string) {
     setError(null);
     setBusyId(id);
@@ -170,6 +185,16 @@ export function UserManagementView({
       message: `Gerar uma nova senha temporária para "${u.name}" (${u.email})? A senha atual dele deixa de funcionar imediatamente. Você vai precisar repassar a nova senha por um canal seguro (telefone, presencialmente) — ela só é exibida uma vez, aqui mesmo, logo em seguida.`,
       confirmLabel: "Gerar nova senha",
       run: () => resetPassword(u),
+    });
+  }
+
+  function askResetMfa(u: UserDTO) {
+    setPendingAction({
+      user: u,
+      title: "Resetar MFA",
+      message: `Resetar o MFA de "${u.name}" (${u.email})? O autenticador e os códigos de backup atuais param de funcionar imediatamente. No próximo login, ele vai precisar configurar o MFA de novo (escanear um QR code novo e guardar códigos de backup novos).`,
+      confirmLabel: "Resetar MFA",
+      run: () => resetMfa(u),
     });
   }
 
@@ -291,6 +316,17 @@ export function UserManagementView({
                           >
                             <KeyRound size={16} />
                           </button>
+                          {u.mfaEnabled && (
+                            <button
+                              type="button"
+                              title="Resetar MFA"
+                              disabled={busy}
+                              onClick={() => askResetMfa(u)}
+                              className="text-zinc-500 hover:opacity-70 disabled:opacity-40 dark:text-zinc-400"
+                            >
+                              <ShieldOff size={16} />
+                            </button>
+                          )}
                           <button
                             type="button"
                             title="Excluir usuário"

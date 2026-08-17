@@ -176,9 +176,11 @@ papéis e proteções. Resumo funcional: aprovar cadastros pendentes, desativar/
 trocar o papel do usuário (`<Select>` com as 4 opções — Super Administrador, Administrador,
 Usuário, Visualizador; só um Super Administrador pode conceder Super Administrador ou mexer na
 conta de outro), redefinir senha (gera uma temporária, exibida uma única vez em um modal — repassar
-ao usuário fora do sistema, já que não há e-mail de recuperação), excluir (quando possível). Toda
-ação passa por uma confirmação (pop-up) antes de ser executada, e toda ação fica registrada no
-histórico de auditoria — exceto o valor da senha em si, que nunca é gravado em lugar nenhum.
+ao usuário fora do sistema, já que não há e-mail de recuperação), resetar MFA (zera a
+configuração atual; só aparece se o usuário tiver MFA ativo — no próximo login ele reconfigura do
+zero, com QR code e backup codes novos), excluir (quando possível). Toda ação passa por uma
+confirmação (pop-up) antes de ser executada, e toda ação fica registrada no histórico de
+auditoria — exceto o valor da senha em si, que nunca é gravado em lugar nenhum.
 
 ## Relatórios (`/relatorios`)
 

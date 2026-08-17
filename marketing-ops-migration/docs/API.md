@@ -36,6 +36,7 @@ Detalhe completo do fluxo: `docs/AUTENTICACAO_E_SEGURANCA.md`.
 | `/api/users/[id]` | PATCH | Altera `role` e/ou `status`. Bloqueia auto-modificação, remoção do último `ADMIN`/`SUPER_ADMIN` ativo, e qualquer tentativa de um `ADMIN` (não `SUPER_ADMIN`) conceder `SUPER_ADMIN` ou mexer na conta de um `SUPER_ADMIN` existente (403) |
 | `/api/users/[id]` | DELETE | Exclui de verdade se não houver histórico vinculado; senão devolve 409 sugerindo desativar. Mesma proteção de `SUPER_ADMIN` do PATCH |
 | `/api/users/[id]/reset-password` | POST | Gera uma senha temporária, grava o hash e devolve a senha em texto puro **uma única vez** na resposta (nunca gravada em log/histórico). Bloqueia auto-reset e tem a mesma proteção de `SUPER_ADMIN` do PATCH |
+| `/api/users/[id]/reset-mfa` | POST | Zera `mfaEnabled`/`mfaSecret`/`mfaBackupCodes`; próximo login força reconfiguração total do MFA. 409 se o usuário ainda não tinha MFA configurado. Mesmo bloqueio de auto-reset e proteção de `SUPER_ADMIN` do PATCH |
 
 ## Estoque
 

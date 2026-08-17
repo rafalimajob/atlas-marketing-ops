@@ -111,9 +111,26 @@ disso, um `ADMIN`/`SUPER_ADMIN` gera uma senha temporária pela pessoa:
 3. Mesmas proteções de `PATCH`/`DELETE` em `api/users/[id]/route.ts`: ninguém pode redefinir a
    própria senha por essa tela (se você está logado, não precisa recuperar nada), e só um
    `SUPER_ADMIN` pode redefinir a senha de outro `SUPER_ADMIN`.
-4. O MFA do usuário não é afetado — se ele também tiver perdido o acesso ao autenticador, resetar
-   a senha sozinho não é suficiente para entrar de novo (seria necessário desativar/reativar a
-   conta para forçar nova configuração de MFA, ver "Sem regeneração de backup codes de MFA" em
+4. O MFA do usuário não é afetado por esse reset — se ele também tiver perdido o acesso ao
+   autenticador, resetar só a senha não é suficiente para entrar de novo. Ver próxima seção.
+
+### 7. Perdi o autenticador (e os backup codes)
+
+Mesma lógica da senha: sem self-service, um `ADMIN`/`SUPER_ADMIN` resolve pela pessoa.
+
+1. Em `/usuarios`, o ícone de escudo (só aparece se `mfaEnabled` for `true`) aciona
+   `POST /api/users/[id]/reset-mfa` (`requireAdmin()`), que zera `mfaEnabled`, `mfaSecret` e
+   `mfaBackupCodes` de uma vez — sem migração, são só os mesmos campos usados no fluxo normal de
+   MFA. Devolve 409 se o usuário nunca tinha configurado MFA (nada para resetar).
+2. O autenticador e os backup codes antigos param de valer imediatamente (não é preciso revogá-los
+   um a um — o secret em si deixa de existir). No próximo login, `precheck` vê `mfaEnabled: false`
+   e manda o usuário direto para `/mfa-setup`, o mesmo fluxo do primeiro cadastro (novo QR code,
+   novos 10 backup codes).
+3. Mesmas proteções de `PATCH`/`DELETE`/`reset-password`: ninguém reseta o próprio MFA por essa
+   tela, e só um `SUPER_ADMIN` reseta o de outro `SUPER_ADMIN`.
+4. Isso é um reset completo, não uma regeneração isolada dos 10 backup codes — se o usuário só
+   perdeu os códigos mas o autenticador continua funcionando, ele também vai ter que reconfigurar
+   do zero (não há hoje uma rota mais cirúrgica só para os backup codes, ver
    `docs/MANUTENCAO.md`).
 
 ## Tickets assinados (`src/lib/tickets.ts`)

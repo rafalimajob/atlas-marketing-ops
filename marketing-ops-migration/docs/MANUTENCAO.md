@@ -40,10 +40,13 @@ sensível do sistema mora.
 - **Busca do header é decorativa**: o campo de busca em `src/components/layout/header.tsx` não
   tem `onChange`/estado — hoje é só visual. Cada módulo (Pedidos/Estoque/Movimentações) tem sua
   própria busca funcional na própria tela.
-- **Sem regeneração de backup codes de MFA**: os 10 códigos são mostrados uma única vez no
-  primeiro setup; não há rota para gerar um novo lote se o usuário os perder (só resta um admin
-  desativar/reativar o usuário para forçar nova configuração de MFA — verificar se esse efeito
-  colateral é aceitável antes de usar como workaround).
+- **Sem regeneração isolada de backup codes de MFA**: se o usuário só perdeu os 10 códigos de
+  backup mas o autenticador continua funcionando, não há como gerar um novo lote sem também
+  trocar o secret TOTP. O que existe é um reset completo de MFA (botão "Resetar MFA" em
+  `/usuarios`, `POST /api/users/[id]/reset-mfa`) — zera `mfaEnabled`/`mfaSecret`/`mfaBackupCodes`
+  e força reconfiguração total (novo QR code) no próximo login. Resolve "perdi o autenticador"
+  e "perdi os backup codes" dos dois, mas é mais disruptivo que só regenerar os códigos quando o
+  autenticador em si ainda está ok.
 - **Exclusão de Pedido é sempre definitiva**: diferente de Estoque/Kits/Áreas/Usuários, a rota
   `DELETE /api/orders/[id]` não verifica se existem movimentações vinculadas antes de apagar —
   não há bloqueio por integridade referencial ali. Se um pedido tiver gerado uma movimentação de
