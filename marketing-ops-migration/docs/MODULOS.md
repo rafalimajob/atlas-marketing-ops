@@ -195,6 +195,24 @@ e valor consumido, agrupados por área — mesmo dado de Consumo por área, espe
 - A página continua sendo só uma lista de cartões com link direto para `/api/reports/{tipo}` —
   o navegador baixa o arquivo; nenhum estado de download é gerenciado no cliente.
 
+## Auditoria (`/auditoria`, somente ADMIN/SUPER_ADMIN)
+
+Leitura de `HistoryLog` — a tabela é gravada por `logHistory()` (`src/lib/history.ts`) em toda
+ação relevante do sistema (pedidos, estoque, movimentações, kits, áreas, usuários, categorias),
+mas até esta tela não existia nenhuma forma de consultar esses registros de volta.
+
+- Lista paginada (`GET /api/history-logs`, 20 por página, "Carregar mais"), mais recentes
+  primeiro. Filtros: tipo de registro (`HistoryEntity`), ação (Criação/Atualização/Exclusão),
+  usuário (`<Select>` com todos os usuários cadastrados) e período (mesmo `DateRangeFilter` de
+  Movimentações/Consumo por área/Relatórios).
+- Cada linha mostra a badge de ação (verde/âmbar/vermelho — criação/atualização/exclusão), o
+  resumo legível (`HistoryLog.summary`), o tipo de registro e quem fez. Clicar na linha abre um
+  modal com o `entityId`, o usuário e — quando houver — a tabela de campos alterados
+  (`HistoryLog.diff`, no formato `{ campo: { before, after } }` gravado por `diffFields()`).
+  Registros de sistema sem usuário (`userId` nulo) aparecem como "Sistema".
+- Não há link para o registro original (ex.: abrir o pedido a partir do log) — o `entityId` é
+  só exibido como texto; navegar até o registro (quando ele ainda existe) é manual.
+
 ## Identidade visual
 
 Verde institucional `#072928` (claro) / `#00CC88` (escuro) como cor de marca, com roxo/ciano

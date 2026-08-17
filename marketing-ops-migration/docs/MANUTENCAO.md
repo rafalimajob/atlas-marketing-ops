@@ -31,9 +31,6 @@ sensível do sistema mora.
 
 ## Lacunas conhecidas (o que existe no schema/código mas não está fechado ponta a ponta)
 
-- **Histórico de auditoria sem tela**: `HistoryLog` é gravado em toda ação relevante, mas não
-  existe nenhuma rota de API nem página que leia esses registros de volta. Se for construir uma
-  tela de auditoria, os dados já estão lá — falta só ler.
 - **Anexos de pedidos em disco local**: `Attachment.url` aponta para `public/uploads/{orderId}/…`
   no sistema de arquivos do servidor. Isso **não sobrevive a deploys serverless/múltiplas
   instâncias** (ex.: Vercel) — cada instância teria seu próprio disco efêmero. Antes de ir para

@@ -13,6 +13,7 @@ import {
   FileBarChart,
   Building2,
   Users,
+  History,
   ChevronsLeft,
   ChevronsRight,
   X,
@@ -29,7 +30,10 @@ const NAV_ITEMS = [
   { href: "/relatorios", label: "Relatórios", icon: FileBarChart },
 ] as const;
 
-const ADMIN_NAV_ITEM = { href: "/usuarios", label: "Usuários", icon: Users } as const;
+const ADMIN_NAV_ITEMS = [
+  { href: "/usuarios", label: "Usuários", icon: Users },
+  { href: "/auditoria", label: "Auditoria", icon: History },
+] as const;
 
 export function Sidebar({
   mobileOpen = false,
@@ -41,7 +45,7 @@ export function Sidebar({
   const pathname = usePathname();
   const { data: session } = useSession();
   const [collapsed, setCollapsed] = useState(false);
-  const navItems = session?.user?.role && isAdminRole(session.user.role) ? [...NAV_ITEMS, ADMIN_NAV_ITEM] : NAV_ITEMS;
+  const navItems = session?.user?.role && isAdminRole(session.user.role) ? [...NAV_ITEMS, ...ADMIN_NAV_ITEMS] : NAV_ITEMS;
 
   return (
     <aside

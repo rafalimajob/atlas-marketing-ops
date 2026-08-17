@@ -108,11 +108,15 @@ Detalhe completo do fluxo: `docs/AUTENTICACAO_E_SEGURANCA.md`.
 |---|---|---|
 | `/api/reports/[type]` | GET | Gera e devolve um `.xlsx`. `type` ∈ `pedidos-por-status`, `pedidos`, `pedidos-por-projeto`, `estoque`, `itens-criticos`, `movimentacoes`, `consumo-por-projeto`, `consumo-por-area`. Aceita `from`/`to` (`YYYY-MM-DD`) para filtrar por período — ignorado por `estoque` e `itens-criticos`, que são um retrato do saldo atual |
 
+## Auditoria (`requireAdmin()` — ADMIN ou SUPER_ADMIN)
+
+| Rota | Método | Descrição |
+|---|---|---|
+| `/api/history-logs` | GET | Lista `HistoryLog`, mais recentes primeiro, paginado (`skip`/`take`, máx. 50 por página). Filtros opcionais: `entity` (`HistoryEntity`), `action` (`HistoryAction`), `userId`, `from`/`to` (`YYYY-MM-DD`, sobre `timestamp`) |
+
 ## O que não existe (e pode surpreender quem procurar)
 
 - **Não há rota de busca dedicada** (`/api/search`) — a busca em Pedidos/Estoque/Movimentações é
   feita no client, filtrando a lista já carregada (`matchesSearch()`).
-- **Não há rota de histórico/auditoria** (`/api/history`) — `HistoryLog` é escrito mas nunca lido
-  de volta por nenhuma rota ou tela hoje.
 - **Não há rota de reset de senha** — `VerificationToken.purpose` já prevê o valor
   `"PASSWORD_RESET"`, mas o fluxo não foi implementado.
