@@ -93,6 +93,29 @@ dispositivos confiáveis" para listar/revogar cookies individualmente — a úni
 todos de uma vez é gerar um novo `AUTH_SECRET` (invalida todos os tickets/cookies assinados do
 sistema inteiro, inclusive sessões ativas) ou aguardar a expiração natural de 30 dias.
 
+### 6. Esqueci minha senha
+
+Não é self-service — quem esqueceu a senha não tem como se recuperar sozinho, porque não há
+e-mail configurado (mesmo motivo da confirmação de cadastro ter sido removida, ver acima). Em vez
+disso, um `ADMIN`/`SUPER_ADMIN` gera uma senha temporária pela pessoa:
+
+1. Em `/usuarios`, clicar no ícone de chave na linha do usuário aciona
+   `POST /api/users/[id]/reset-password` (`requireAdmin()`), que gera uma senha aleatória de 12
+   caracteres (`generateTemporaryPassword()`, `src/lib/password.ts`), grava só o hash
+   (bcrypt, custo 12) e devolve a senha em texto puro **uma única vez** na resposta — ela não é
+   gravada em lugar nenhum além do `passwordHash`, nem entra no `diff` do `HistoryLog` (só o fato
+   "senha redefinida" é registrado, igual à regra que já valia para MFA).
+2. A senha antiga para de funcionar imediatamente. O admin precisa repassar a nova para o usuário
+   por um canal fora do sistema (telefone, presencialmente) — a interface mostra um aviso de que
+   ela não aparece de novo.
+3. Mesmas proteções de `PATCH`/`DELETE` em `api/users/[id]/route.ts`: ninguém pode redefinir a
+   própria senha por essa tela (se você está logado, não precisa recuperar nada), e só um
+   `SUPER_ADMIN` pode redefinir a senha de outro `SUPER_ADMIN`.
+4. O MFA do usuário não é afetado — se ele também tiver perdido o acesso ao autenticador, resetar
+   a senha sozinho não é suficiente para entrar de novo (seria necessário desativar/reativar a
+   conta para forçar nova configuração de MFA, ver "Sem regeneração de backup codes de MFA" em
+   `docs/MANUTENCAO.md`).
+
 ## Tickets assinados (`src/lib/tickets.ts`)
 
 Em vez de reenviar a senha entre as etapas do login, cada etapa emite um ticket HMAC-SHA256

@@ -175,8 +175,10 @@ Ver `docs/AUTENTICACAO_E_SEGURANCA.md` para o detalhamento completo do fluxo de 
 papéis e proteções. Resumo funcional: aprovar cadastros pendentes, desativar/reativar acesso,
 trocar o papel do usuário (`<Select>` com as 4 opções — Super Administrador, Administrador,
 Usuário, Visualizador; só um Super Administrador pode conceder Super Administrador ou mexer na
-conta de outro), excluir (quando possível). Toda ação passa por uma confirmação (pop-up) antes
-de ser executada, e toda ação fica registrada no histórico de auditoria.
+conta de outro), redefinir senha (gera uma temporária, exibida uma única vez em um modal — repassar
+ao usuário fora do sistema, já que não há e-mail de recuperação), excluir (quando possível). Toda
+ação passa por uma confirmação (pop-up) antes de ser executada, e toda ação fica registrada no
+histórico de auditoria — exceto o valor da senha em si, que nunca é gravado em lugar nenhum.
 
 ## Relatórios (`/relatorios`)
 

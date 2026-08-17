@@ -40,8 +40,6 @@ sensível do sistema mora.
 - **Busca do header é decorativa**: o campo de busca em `src/components/layout/header.tsx` não
   tem `onChange`/estado — hoje é só visual. Cada módulo (Pedidos/Estoque/Movimentações) tem sua
   própria busca funcional na própria tela.
-- **Sem fluxo de "esqueci minha senha"**: `VerificationToken.purpose` já reserva o valor
-  `"PASSWORD_RESET"` no comentário do schema, mas nenhuma rota usa esse valor.
 - **Sem regeneração de backup codes de MFA**: os 10 códigos são mostrados uma única vez no
   primeiro setup; não há rota para gerar um novo lote se o usuário os perder (só resta um admin
   desativar/reativar o usuário para forçar nova configuração de MFA — verificar se esse efeito

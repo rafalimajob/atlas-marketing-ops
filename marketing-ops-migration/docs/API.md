@@ -35,6 +35,7 @@ Detalhe completo do fluxo: `docs/AUTENTICACAO_E_SEGURANCA.md`.
 | `/api/users` | GET | Lista todos os usuários (id/nome/e-mail/papel/status/MFA/data) |
 | `/api/users/[id]` | PATCH | Altera `role` e/ou `status`. Bloqueia auto-modificação, remoção do último `ADMIN`/`SUPER_ADMIN` ativo, e qualquer tentativa de um `ADMIN` (não `SUPER_ADMIN`) conceder `SUPER_ADMIN` ou mexer na conta de um `SUPER_ADMIN` existente (403) |
 | `/api/users/[id]` | DELETE | Exclui de verdade se não houver histórico vinculado; senão devolve 409 sugerindo desativar. Mesma proteção de `SUPER_ADMIN` do PATCH |
+| `/api/users/[id]/reset-password` | POST | Gera uma senha temporária, grava o hash e devolve a senha em texto puro **uma única vez** na resposta (nunca gravada em log/histórico). Bloqueia auto-reset e tem a mesma proteção de `SUPER_ADMIN` do PATCH |
 
 ## Estoque
 
@@ -117,5 +118,7 @@ Detalhe completo do fluxo: `docs/AUTENTICACAO_E_SEGURANCA.md`.
 
 - **Não há rota de busca dedicada** (`/api/search`) — a busca em Pedidos/Estoque/Movimentações é
   feita no client, filtrando a lista já carregada (`matchesSearch()`).
-- **Não há rota de reset de senha** — `VerificationToken.purpose` já prevê o valor
-  `"PASSWORD_RESET"`, mas o fluxo não foi implementado.
+- **Não há reset de senha self-service** — quem esqueceu a senha não consegue se recuperar
+  sozinho (não há e-mail configurado para isso, ver `docs/AUTENTICACAO_E_SEGURANCA.md`). Um
+  `ADMIN`/`SUPER_ADMIN` gera uma senha temporária pelo usuário em `/api/users/[id]/reset-password`
+  e repassa por fora do sistema.

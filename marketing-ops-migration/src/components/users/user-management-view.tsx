@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { UserCheck, UserX, Trash2 } from "lucide-react";
+import { UserCheck, UserX, Trash2, KeyRound } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 import { ErrorBanner } from "@/components/ui/error-banner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -58,6 +60,7 @@ export function UserManagementView({
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+  const [resetPasswordResult, setResetPasswordResult] = useState<{ user: UserDTO; password: string } | null>(null);
 
   // Só um Super Administrador pode conceder o papel de Super Administrador
   // (ou mexer na conta de outro) — mesma regra do servidor em /api/users/[id].
@@ -76,6 +79,21 @@ export function UserManagementView({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Não foi possível atualizar o usuário.");
       setUsers((prev) => prev.map((u) => (u.id === id ? data : u)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro inesperado.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function resetPassword(u: UserDTO) {
+    setError(null);
+    setBusyId(u.id);
+    try {
+      const res = await fetch(`/api/users/${u.id}/reset-password`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Não foi possível redefinir a senha.");
+      setResetPasswordResult({ user: u, password: data.password });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro inesperado.");
     } finally {
@@ -142,6 +160,16 @@ export function UserManagementView({
       message: `Alterar o papel de "${u.name}" (${u.email}) de ${ROLE_LABEL[u.role]} para ${ROLE_LABEL[nextRole]}?`,
       confirmLabel: "Alterar",
       run: () => patchUser(u.id, { role: nextRole }),
+    });
+  }
+
+  function askResetPassword(u: UserDTO) {
+    setPendingAction({
+      user: u,
+      title: "Redefinir senha",
+      message: `Gerar uma nova senha temporária para "${u.name}" (${u.email})? A senha atual dele deixa de funcionar imediatamente. Você vai precisar repassar a nova senha por um canal seguro (telefone, presencialmente) — ela só é exibida uma vez, aqui mesmo, logo em seguida.`,
+      confirmLabel: "Gerar nova senha",
+      run: () => resetPassword(u),
     });
   }
 
@@ -256,6 +284,15 @@ export function UserManagementView({
                           )}
                           <button
                             type="button"
+                            title="Redefinir senha"
+                            disabled={busy}
+                            onClick={() => askResetPassword(u)}
+                            className="text-zinc-500 hover:opacity-70 disabled:opacity-40 dark:text-zinc-400"
+                          >
+                            <KeyRound size={16} />
+                          </button>
+                          <button
+                            type="button"
                             title="Excluir usuário"
                             disabled={busy}
                             onClick={() => askDelete(u)}
@@ -283,6 +320,26 @@ export function UserManagementView({
           onConfirm={confirmPendingAction}
           onCancel={() => setPendingAction(null)}
         />
+      )}
+
+      {resetPasswordResult && (
+        <Modal title="Nova senha temporária" onClose={() => setResetPasswordResult(null)}>
+          <div className="space-y-4">
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              Repasse esta senha para <strong>{resetPasswordResult.user.name}</strong> por um canal
+              seguro (telefone, presencialmente) — ela não será exibida de novo. Se for perdida, gere
+              outra redefinição.
+            </p>
+            <p className="select-all break-all rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-center font-mono text-lg tracking-wide text-zinc-800 dark:border-zinc-800 dark:bg-zinc-800/60 dark:text-zinc-100">
+              {resetPasswordResult.password}
+            </p>
+            <div className="flex justify-end">
+              <Button type="button" onClick={() => setResetPasswordResult(null)}>
+                Fechar
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );
