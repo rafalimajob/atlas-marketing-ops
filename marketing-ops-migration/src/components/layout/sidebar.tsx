@@ -18,7 +18,7 @@ import {
   ChevronsRight,
   X,
 } from "lucide-react";
-import { isAdminRole } from "@/lib/permissions";
+import { isAdminRole, isSuperAdmin } from "@/lib/permissions";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -30,10 +30,9 @@ const NAV_ITEMS = [
   { href: "/relatorios", label: "Relatórios", icon: FileBarChart },
 ] as const;
 
-const ADMIN_NAV_ITEMS = [
-  { href: "/usuarios", label: "Usuários", icon: Users },
-  { href: "/auditoria", label: "Auditoria", icon: History },
-] as const;
+const ADMIN_NAV_ITEMS = [{ href: "/usuarios", label: "Usuários", icon: Users }] as const;
+
+const SUPER_ADMIN_NAV_ITEMS = [{ href: "/auditoria", label: "Auditoria", icon: History }] as const;
 
 export function Sidebar({
   mobileOpen = false,
@@ -45,7 +44,12 @@ export function Sidebar({
   const pathname = usePathname();
   const { data: session } = useSession();
   const [collapsed, setCollapsed] = useState(false);
-  const navItems = session?.user?.role && isAdminRole(session.user.role) ? [...NAV_ITEMS, ...ADMIN_NAV_ITEMS] : NAV_ITEMS;
+  const role = session?.user?.role;
+  const navItems = [
+    ...NAV_ITEMS,
+    ...(role && isAdminRole(role) ? ADMIN_NAV_ITEMS : []),
+    ...(role && isSuperAdmin(role) ? SUPER_ADMIN_NAV_ITEMS : []),
+  ];
 
   return (
     <aside

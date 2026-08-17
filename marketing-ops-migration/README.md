@@ -60,7 +60,7 @@ Não há suíte de testes automatizados no projeto — ver `docs/MANUTENCAO.md`.
 ## Módulos
 
 Dashboard · Pedidos · Estoque · Movimentações · Kits · Consumo por área · Usuários (admin) ·
-Auditoria (admin) · Relatórios — descrição funcional completa em
+Auditoria (super admin) · Relatórios — descrição funcional completa em
 [`docs/MODULOS.md`](docs/MODULOS.md).
 
 ## Aviso para quem for mexer no código com um agente de IA

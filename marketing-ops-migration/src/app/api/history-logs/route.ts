@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/require-admin";
+import { requireSuperAdmin } from "@/lib/require-admin";
 import { Prisma, type HistoryAction, type HistoryEntity } from "@/generated/prisma/client";
 import type { HistoryLogDTO } from "@/types/history";
 
@@ -8,13 +8,13 @@ const DEFAULT_TAKE = 20;
 const MAX_TAKE = 50;
 
 /**
- * Tela de auditoria (só ADMIN/SUPER_ADMIN) — lê de volta o que `logHistory()`
+ * Tela de auditoria (só SUPER_ADMIN) — lê de volta o que `logHistory()`
  * (`src/lib/history.ts`) grava em toda ação relevante. Paginado desde o
  * início: diferente das outras listagens do app (que carregam tudo de uma
  * vez), aqui o volume só cresce, nunca é limpo.
  */
 export async function GET(request: NextRequest) {
-  const gate = await requireAdmin();
+  const gate = await requireSuperAdmin();
   if ("error" in gate) return gate.error;
 
   const { searchParams } = request.nextUrl;

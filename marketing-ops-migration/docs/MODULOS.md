@@ -195,7 +195,7 @@ e valor consumido, agrupados por área — mesmo dado de Consumo por área, espe
 - A página continua sendo só uma lista de cartões com link direto para `/api/reports/{tipo}` —
   o navegador baixa o arquivo; nenhum estado de download é gerenciado no cliente.
 
-## Auditoria (`/auditoria`, somente ADMIN/SUPER_ADMIN)
+## Auditoria (`/auditoria`, somente SUPER_ADMIN)
 
 Leitura de `HistoryLog` — a tabela é gravada por `logHistory()` (`src/lib/history.ts`) em toda
 ação relevante do sistema (pedidos, estoque, movimentações, kits, áreas, usuários, categorias),

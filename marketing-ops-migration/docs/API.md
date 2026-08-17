@@ -108,7 +108,7 @@ Detalhe completo do fluxo: `docs/AUTENTICACAO_E_SEGURANCA.md`.
 |---|---|---|
 | `/api/reports/[type]` | GET | Gera e devolve um `.xlsx`. `type` ∈ `pedidos-por-status`, `pedidos`, `pedidos-por-projeto`, `estoque`, `itens-criticos`, `movimentacoes`, `consumo-por-projeto`, `consumo-por-area`. Aceita `from`/`to` (`YYYY-MM-DD`) para filtrar por período — ignorado por `estoque` e `itens-criticos`, que são um retrato do saldo atual |
 
-## Auditoria (`requireAdmin()` — ADMIN ou SUPER_ADMIN)
+## Auditoria (`requireSuperAdmin()` — só SUPER_ADMIN)
 
 | Rota | Método | Descrição |
 |---|---|---|
